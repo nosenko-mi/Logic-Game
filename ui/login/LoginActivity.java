@@ -50,6 +50,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.ltl.mpmp_lab3.Constants;
 import com.ltl.mpmp_lab3.MainActivity;
 import com.ltl.mpmp_lab3.R;
+import com.ltl.mpmp_lab3.RegisterActivity;
 import com.ltl.mpmp_lab3.data.model.User;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
 
@@ -58,6 +59,7 @@ public class LoginActivity extends AppCompatActivity {
     private LoginViewModel loginViewModel;
     private ActivityLoginBinding binding;
 
+    private TextView registerTextView;
     private EditText usernameEditText, passwordEditText;
     private Button loginButton;
     private SignInButton signInGoogle;
@@ -115,13 +117,10 @@ public class LoginActivity extends AppCompatActivity {
                     // Don't exist! Do something.
                     if (account == null)
                         return;
-
-                    User user = createUser(account);
+//                    User user = createUser(account);
 //                    databaseReference.child("newUser").setValue(user);
-
-                    DatabaseReference usersRef = databaseReference.child("users");
-                    usersRef.child("alanisawesome").setValue(user);
-
+//                    DatabaseReference usersRef = databaseReference.child("users");
+//                    usersRef.child("alanisawesome").setValue(user);
                 }
             }
             @Override
@@ -241,11 +240,20 @@ public class LoginActivity extends AppCompatActivity {
                 editor.apply();
             }
         });
+
+        registerTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     private void init(){
-        usernameEditText = binding.username;
-        passwordEditText = binding.password;
+        registerTextView = binding.registerTextView;
+        usernameEditText = binding.usernameEdit;
+        passwordEditText = binding.passwordEdit;
         loginButton = binding.loginButton;
         signInGoogle = binding.signInGoogle;
         loadingProgressBar = binding.loading;
@@ -261,10 +269,11 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private User createUser(GoogleSignInAccount account){
-        return new User(
-                account.getDisplayName(),
-                account.getEmail()
-        );
+//        return new User(
+//                account.getDisplayName(),
+//                account.getEmail()
+//        );
+        return null;
     }
 
     private void createAccount(String email, String password){

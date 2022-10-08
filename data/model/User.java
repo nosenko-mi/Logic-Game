@@ -6,6 +6,9 @@ public class User {
     private String email;
     private Boolean sendResult = false;
     private Long  record = 0L;
+    private String password;
+
+
 
     @Override
     public String toString() {
@@ -19,9 +22,10 @@ public class User {
     public User() {
     }
 
-    public User(String displayName, String email) {
+    public User(String displayName, String email, String password) {
         this.displayName = displayName;
         this.email = email;
+        this.password = password;
     }
 
     public String getDisplayName() {
@@ -54,5 +58,13 @@ public class User {
 
     public void setRecord(Long record) {
         this.record = record;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }
