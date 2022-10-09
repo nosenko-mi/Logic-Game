@@ -104,7 +104,13 @@ public class RegisterActivity extends AppCompatActivity {
                     } else {
                         // If sign in fails, display a message to the request.
                         Log.d("register_activity", "createUserWithEmail:failure", task.getException());
-                        Toast.makeText(getApplicationContext(), Objects.requireNonNull(task.getException()).getLocalizedMessage(), Toast.LENGTH_LONG).show();
+
+                        Toast
+                                .makeText(
+                                        getApplicationContext(),
+                                        Objects.requireNonNull(task.getException()).getLocalizedMessage(),
+                                        Toast.LENGTH_LONG)
+                                .show();
                     }
                 });
     }
@@ -113,8 +119,6 @@ public class RegisterActivity extends AppCompatActivity {
         String username = usernameEditText.getText().toString();
         String email = emailEditText.getText().toString();
         String password = passwordEditText.getText().toString();
-
-
         return new RegistrationRequest(username, email, password);
     }
 
