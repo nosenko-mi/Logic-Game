@@ -4,12 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -22,7 +18,6 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
@@ -67,7 +62,6 @@ public class LoginActivity extends AppCompatActivity {
 //    private DatabaseReference usersReference;
     private GoogleSignInAccount account;
 
-    private FirebaseAuth.AuthStateListener mAuthListener;
     private FirebaseAuth mAuth;
 
     ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
@@ -129,27 +123,10 @@ public class LoginActivity extends AppCompatActivity {
 
         // Check if user is signed in (non-null) and update UI accordingly.
 
-
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null){
             updateUiWithUser();
         }
-//        // [START auth_state_listener] ,this method execute as soon as there is a change in Auth status , such as user sign in or sign out.
-//        mAuthListener = new FirebaseAuth.AuthStateListener() {
-//            @Override
-//            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-//                if (currentUser != null) {
-//                    // User is signed in
-//                    //redirect
-//                    updateUiWithUser();
-//                } else {
-//                    // User is signed out
-//                    Log.d("login_activity", "onAuthStateChanged:signed_out");
-//                }
-//
-//            }
-//        };
-//        // [END auth_state_listener]
 
         GoogleSignInOptions gso = new GoogleSignInOptions
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -196,48 +173,10 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-
-
-        TextWatcher afterTextChangedListener = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // ignore
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // ignore
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
-            }
-        };
-
-        usernameEditText.addTextChangedListener(afterTextChangedListener);
-
-        passwordEditText.addTextChangedListener(afterTextChangedListener);
-
-        passwordEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    loginViewModel.login(usernameEditText.getText().toString(),
-                            passwordEditText.getText().toString());
-                }
-                return false;
-            }
-        });
-
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 //                loadingProgressBar.setVisibility(View.VISIBLE);
-//                loginViewModel.login(usernameEditText.getText().toString(),
-//                        passwordEditText.getText().toString());
                 firebaseAuthWithEmail();
             }
         });
@@ -322,8 +261,7 @@ public class LoginActivity extends AppCompatActivity {
                     public void onCanceled() {
                         Log.d("login_activity", "login canceled");
                     }
-                })
-        ;
+                });
     }
 
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {

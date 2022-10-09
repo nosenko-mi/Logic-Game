@@ -2,8 +2,6 @@ package com.ltl.mpmp_lab3;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,7 +25,6 @@ public class RegisterActivity extends AppCompatActivity {
     private ActivityRegisterBinding binding;
     private LoginViewModel loginViewModel;
 
-
     private EditText usernameEditText, emailEditText, passwordEditText;
     private Button registerButton;
 
@@ -41,31 +38,31 @@ public class RegisterActivity extends AppCompatActivity {
 
         init();
 
-        TextWatcher afterTextChangedListener = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // ignore
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // ignore
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
-            }
-        };
-
-        usernameEditText.addTextChangedListener(afterTextChangedListener);
-
-        passwordEditText.addTextChangedListener(afterTextChangedListener);
+//        TextWatcher afterTextChangedListener = new TextWatcher() {
+//            @Override
+//            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//                // ignore
+//            }
+//
+//            @Override
+//            public void onTextChanged(CharSequence s, int start, int before, int count) {
+//                // ignore
+//            }
+//
+//            @Override
+//            public void afterTextChanged(Editable s) {
+//                loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
+//                        passwordEditText.getText().toString());
+//            }
+//        };
+//        usernameEditText.addTextChangedListener(afterTextChangedListener);
+//        passwordEditText.addTextChangedListener(afterTextChangedListener);
 
         registerButton.setOnClickListener(view -> {
             RegistrationRequest request = createRequest();
-            createAccount(request);
+            if (request != null){
+                createAccount(request);
+            }
         });
     }
 
@@ -114,8 +111,29 @@ public class RegisterActivity extends AppCompatActivity {
                     }
                 });
     }
-    
+
+    private boolean validateData(){
+        boolean isValid = true;
+        if (usernameEditText.getText().toString().equals("")){
+            usernameEditText.setError("Enter username");
+            isValid = false;
+        }
+        if (emailEditText.getText().toString().equals("")){
+            emailEditText.setError("Enter username");
+            isValid = false;
+        }
+        if (passwordEditText.getText().toString().equals("")){
+            passwordEditText.setError("Enter username");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
     private RegistrationRequest createRequest(){
+        if (!validateData()){
+            return null;
+        }
         String username = usernameEditText.getText().toString();
         String email = emailEditText.getText().toString();
         String password = passwordEditText.getText().toString();
@@ -124,6 +142,9 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void returnToLoginActivity() {
         Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+//        any existing task that would be associated with the activity to be cleared before the activity is started.
+//        That is, the activity becomes the new root of an otherwise empty task, and any old activities are finished.
+//        this activity will become the start of a new task on this history stack.
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
