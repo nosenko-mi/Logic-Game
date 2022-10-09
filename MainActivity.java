@@ -22,6 +22,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.ltl.mpmp_lab3.data.model.User;
 import com.ltl.mpmp_lab3.ui.login.LoginActivity;
 
 import java.io.FileNotFoundException;
@@ -43,10 +44,12 @@ public class MainActivity extends AppCompatActivity {
     private Long timeLeftInMillis = 0L, mEndTime = 0L;
     boolean isStared = false;
 
-    GoogleSignInAccount account;
+    GoogleSignInAccount accountGoogle;
     GoogleSignInOptions gso;
     GoogleSignInClient mGoogleSignInClient;
     private FirebaseAuth mAuth;
+    private FirebaseUser accountFirebase;
+    private User currentUser;
 
     Random generator = new Random();
     private int penalty = 0;
@@ -61,10 +64,6 @@ public class MainActivity extends AppCompatActivity {
 
         init();
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null){
-            usernameText.setText(currentUser.getDisplayName());
-        }
 
         yesButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -88,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
                         startGame(Constants.GAME_DURATION_MILLIS + Constants.ANIMATION_DURATION_MILLIS);
                     else {
                         finishGame();
-                        goToResults();
+                        goToResults(currentUser);
                     }
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -99,13 +98,18 @@ public class MainActivity extends AppCompatActivity {
         logoutImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mAuth.signOut();
-                mGoogleSignInClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        signOut();
-                    }
-                });
+//                mAuth.signOut();
+//                Log.d("main_activity", "accountFirebase : signOut");
+//                goToLogin();
+//                mGoogleSignInClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
+//                    @Override
+//                    public void onComplete(@NonNull Task<Void> task) {
+//                        Log.d("main_activity", "accountGoogle : signOut");
+//
+//                        signOut();
+//                    }
+//                });
+                signOut();
             }
 
         });
@@ -148,10 +152,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void init(){
+//        ui elements:
         yesButton = findViewById(R.id.yesButton);
         noButton = findViewById(R.id.noButton);
         startButton =findViewById(R.id.startButton);
-
         leftText = findViewById(R.id.leftTextView);
         rightText = findViewById(R.id.rightTextView);
         pointsText = findViewById(R.id.pointsTextView);
@@ -159,25 +163,9 @@ public class MainActivity extends AppCompatActivity {
         timerText = findViewById(R.id.timerTextView);
         recordText = findViewById(R.id.recordTextView);
         usernameText = findViewById(R.id.usernameTextView);
-
         logoutImage = findViewById(R.id.logoutImageView);
 
-        mAuth = FirebaseAuth.getInstance();
-        account = GoogleSignIn.getLastSignedInAccount(this);
-        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .build();
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
-        if (account != null){
-            usernameText.setText(account.getDisplayName());
-        }
-
-        Integer previousRecord = fileHandler.loadRecord();
-        String text = getText(R.string.record_text) + " " + previousRecord;
-
-        recordText.setText(text);
-
+//        colors:
         colorNames = getResources().getStringArray(R.array.color_names_array);
         colors = getResources().getIntArray(R.array.game_colors_array);
         if (colorNames.length != colors.length) {
@@ -187,8 +175,33 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < colorNames.length; i++){
             colorsMap.put(colorNames[i], colors[i]);
         }
-
         shuffle();
+
+//        record:
+        Integer previousRecord = fileHandler.loadRecord();
+        String text = getText(R.string.record_text) + " " + previousRecord;
+        recordText.setText(text);
+
+//        accounts:
+        mAuth = FirebaseAuth.getInstance();
+        accountFirebase = mAuth.getCurrentUser();
+
+        accountGoogle = GoogleSignIn.getLastSignedInAccount(this);
+        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        if (accountFirebase != null){
+            currentUser = getCurrentUser(accountFirebase);
+            Log.d("main_activity", "accountFirebase : ok");
+        }
+        if (accountGoogle != null){
+            currentUser = getCurrentUser(accountGoogle);
+            Log.d("main_activity", "accountGoogle : ok");
+
+        }
+        usernameText.setText(currentUser.getDisplayName());
     }
 
     private void startGame(Long timeMillis) throws FileNotFoundException {
@@ -220,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
             public void onFinish() {
                 timerText.setText(R.string.finished_text);
                 finishGame();
-                goToResults();
+                goToResults(currentUser);
             }
         }.start();
     }
@@ -239,13 +252,15 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void goToResults(){
+    private void goToResults(User user){
         Intent intent = new Intent(this, GameResultActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         intent.putExtra(Constants.POINTS_EXTRA, points);
         intent.putExtra(Constants.RECORD_EXTRA, fileHandler.loadRecord());
-        intent.putExtra(Constants.DISPLAY_NAME_EXTRA, account.getDisplayName());
-        intent.putExtra(Constants.USER_EMAIL_EXTRA, account.getEmail());
+//        put user details:
+        intent.putExtra(Constants.DISPLAY_NAME_EXTRA, user.getDisplayName());
+        intent.putExtra(Constants.USER_EMAIL_EXTRA, user.getEmail());
+
         startActivity(intent);
     }
 
@@ -304,12 +319,33 @@ public class MainActivity extends AppCompatActivity {
         noButton.startAnimation(moveDown);
     }
 
-    private void signOut(){
+    private void goToLogin(){
         if (isStared){
             finishGame();
         }
         finish();
         startActivity(new Intent(getApplicationContext(), LoginActivity.class));
+    }
+
+    private void signOut(){
+        Log.d("main_activity", "accountFirebase : signOut");
+        mAuth.signOut();
+
+        mGoogleSignInClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                Log.d("main_activity", "accountGoogle : signOut");
+            }
+        });
+        goToLogin();
+    }
+
+    private User getCurrentUser(FirebaseUser fAccount){
+        return new User(fAccount.getDisplayName(), fAccount.getEmail());
+    }
+
+    private User getCurrentUser(GoogleSignInAccount gAccount){
+        return new User(gAccount.getDisplayName(), gAccount.getEmail());
     }
 
     private void updateRecord(){

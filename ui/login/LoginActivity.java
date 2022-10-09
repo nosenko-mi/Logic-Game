@@ -13,6 +13,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,23 +36,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnCanceledListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.ltl.mpmp_lab3.Constants;
 import com.ltl.mpmp_lab3.MainActivity;
 import com.ltl.mpmp_lab3.R;
 import com.ltl.mpmp_lab3.RegisterActivity;
-import com.ltl.mpmp_lab3.data.model.User;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
 
 public class LoginActivity extends AppCompatActivity {
@@ -66,11 +60,14 @@ public class LoginActivity extends AppCompatActivity {
     private ProgressBar loadingProgressBar;
     private SwitchCompat emailSwitch;
     private RadioGroup radioGroup;
+    private RadioButton normalRadioButton, hardRadioButton;
 
-    private final FirebaseDatabase database = FirebaseDatabase.getInstance();
-    private final DatabaseReference databaseReference = database.getReference("server/saving-data/game");
-    private DatabaseReference usersReference;
+//    private final FirebaseDatabase database = FirebaseDatabase.getInstance();
+//    private final DatabaseReference databaseReference = database.getReference("server/saving-data/game");
+//    private DatabaseReference usersReference;
     private GoogleSignInAccount account;
+
+    private FirebaseAuth.AuthStateListener mAuthListener;
     private FirebaseAuth mAuth;
 
     ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
@@ -108,32 +105,51 @@ public class LoginActivity extends AppCompatActivity {
 
         init();
 
-        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    // Exist! Do whatever.
-                } else {
-                    // Don't exist! Do something.
-                    if (account == null)
-                        return;
-//                    User user = createUser(account);
-//                    databaseReference.child("newUser").setValue(user);
-//                    DatabaseReference usersRef = databaseReference.child("users");
-//                    usersRef.child("alanisawesome").setValue(user);
-                }
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                // Failed, how to handle?
-            }
-        });
+        // will be necessary in future
+//        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                if (snapshot.exists()) {
+//                    // Exist! Do whatever.
+//                } else {
+//                    // Don't exist! Do something.
+//                    if (account == null)
+//                        return;
+////                    User user = createUser(account);
+////                    databaseReference.child("newUser").setValue(user);
+////                    DatabaseReference usersRef = databaseReference.child("users");
+////                    usersRef.child("alanisawesome").setValue(user);
+//                }
+//            }
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                // Failed, how to handle?
+//            }
+//        });
 
         // Check if user is signed in (non-null) and update UI accordingly.
+
+
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null){
             updateUiWithUser();
         }
+//        // [START auth_state_listener] ,this method execute as soon as there is a change in Auth status , such as user sign in or sign out.
+//        mAuthListener = new FirebaseAuth.AuthStateListener() {
+//            @Override
+//            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+//                if (currentUser != null) {
+//                    // User is signed in
+//                    //redirect
+//                    updateUiWithUser();
+//                } else {
+//                    // User is signed out
+//                    Log.d("login_activity", "onAuthStateChanged:signed_out");
+//                }
+//
+//            }
+//        };
+//        // [END auth_state_listener]
 
         GoogleSignInOptions gso = new GoogleSignInOptions
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -180,6 +196,8 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+
+
         TextWatcher afterTextChangedListener = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -217,9 +235,10 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadingProgressBar.setVisibility(View.VISIBLE);
-                loginViewModel.login(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
+//                loadingProgressBar.setVisibility(View.VISIBLE);
+//                loginViewModel.login(usernameEditText.getText().toString(),
+//                        passwordEditText.getText().toString());
+                firebaseAuthWithEmail();
             }
         });
 
@@ -257,52 +276,54 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = binding.loginButton;
         signInGoogle = binding.signInGoogle;
         loadingProgressBar = binding.loading;
+
         radioGroup = binding.radioGroup;
+        normalRadioButton = binding.normalRadioButton;
+        hardRadioButton = binding.hardRadioButton;
 
         emailSwitch = binding.sendEmailSwitch;
 
         SharedPreferences settings = getSharedPreferences(Constants.IS_EMAIL_ENABLED_EXTRA, 0);
-        boolean silent = settings.getBoolean("switchkey", false);
-        emailSwitch.setChecked(silent);
+        boolean switchState = settings.getBoolean("switchkey", false);
+        emailSwitch.setChecked(switchState);
 
         mAuth = FirebaseAuth.getInstance();
-    }
-
-    private User createUser(GoogleSignInAccount account){
-//        return new User(
-//                account.getDisplayName(),
-//                account.getEmail()
-//        );
-        return null;
-    }
-
-    private void createAccount(String email, String password){
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            Log.d("SIGNUP", "createUserWithEmail:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
-                        } else {
-                            // If sign in fails, display a message to the user.
-                            Log.w("SIGNUP", "createUserWithEmail:failure", task.getException());
-                        }
-                    }
-                });
     }
 
     private void firebaseAuthWithGoogle(GoogleSignInAccount acct) {
         AuthCredential credential = GoogleAuthProvider.getCredential(acct.getIdToken(), null);
         mAuth.signInWithCredential(credential)
                 .addOnSuccessListener(this, authResult -> {
-                    User user = createUser(account);
-                    databaseReference.push().setValue(user);
+//                    databaseReference.push().setValue(user);
                     updateUiWithUser();
-                })
+                    })
                 .addOnFailureListener(this, e -> Toast.makeText(LoginActivity.this, "Authentication failed.",
                         Toast.LENGTH_SHORT).show());
+    }
+
+    private void firebaseAuthWithEmail() {
+        String email = usernameEditText.getText().toString();
+        String password = passwordEditText.getText().toString();
+        if (email.equals("") || password.equals("")){
+            Toast.makeText(getApplicationContext(), "Bad credentials", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(this, authResult -> {
+                    updateUiWithUser();
+                    })
+                .addOnFailureListener(this, e -> {
+                    Toast.makeText(LoginActivity.this, "Authentication failed.",
+                            Toast.LENGTH_SHORT).show();
+                    Log.d("login_activity", e.toString());
+                })
+                .addOnCanceledListener(this, new OnCanceledListener() {
+                    @Override
+                    public void onCanceled() {
+                        Log.d("login_activity", "login canceled");
+                    }
+                })
+        ;
     }
 
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
@@ -334,9 +355,9 @@ public class LoginActivity extends AppCompatActivity {
         int penalty = 0;
         if (checkedRadioButtonId == -1) {
             penalty = 1;
-        } else if (checkedRadioButtonId == binding.normalRadioButton.getId()){
+        } else if (checkedRadioButtonId == normalRadioButton.getId()){
             penalty = 1;
-        } else if (checkedRadioButtonId == binding.hardRadioButton.getId()){
+        } else if (checkedRadioButtonId == hardRadioButton.getId()){
             penalty = 5;
         }
 
