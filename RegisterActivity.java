@@ -1,31 +1,27 @@
 package com.ltl.mpmp_lab3;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
-import com.ltl.mpmp_lab3.data.model.User;
-import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
 import com.ltl.mpmp_lab3.databinding.ActivityRegisterBinding;
 import com.ltl.mpmp_lab3.registration.RegistrationRequest;
 import com.ltl.mpmp_lab3.ui.login.LoginActivity;
 import com.ltl.mpmp_lab3.ui.login.LoginViewModel;
 import com.ltl.mpmp_lab3.ui.login.LoginViewModelFactory;
+
+import java.util.Objects;
 
 public class RegisterActivity extends AppCompatActivity {
     private ActivityRegisterBinding binding;
@@ -67,12 +63,9 @@ public class RegisterActivity extends AppCompatActivity {
 
         passwordEditText.addTextChangedListener(afterTextChangedListener);
 
-        registerButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                RegistrationRequest request = createRequest();
-                createAccount(request);
-            }
+        registerButton.setOnClickListener(view -> {
+            RegistrationRequest request = createRequest();
+            createAccount(request);
         });
     }
 
@@ -90,26 +83,28 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void createAccount(RegistrationRequest request){
         mAuth.createUserWithEmailAndPassword(request.getEmail(), request.getPassword())
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in request's information
-                            Log.d("register_activity", "createUserWithEmail:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Sign in success, update UI with the signed-in request's information
+                        Log.d("register_activity", "createUserWithEmail:success");
+                        FirebaseUser user = mAuth.getCurrentUser();
 
-                            assert user != null;
-                            UserProfileChangeRequest profileUpdates
-                                    = new UserProfileChangeRequest.Builder()
-                                    .setDisplayName(request.getDisplayName())
-                                    .build();
-                            user.updateProfile(profileUpdates);
+                        assert user != null;
+                        UserProfileChangeRequest profileUpdates
+                                = new UserProfileChangeRequest.Builder()
+                                .setDisplayName(request.getDisplayName())
+                                .build();
+                        user.updateProfile(profileUpdates);
 
-                            returnToLoginActivity();
-                        } else {
-                            // If sign in fails, display a message to the request.
-                            Log.d("register_activity", "createUserWithEmail:failure", task.getException());
-                        }
+                        Log.d("register_activity", "createUserWithEmail:success");
+                        Log.d("register_activity", "Email: " + user.getEmail());
+                        Log.d("register_activity", "Display name:" + user.getDisplayName());
+
+                        returnToLoginActivity();
+                    } else {
+                        // If sign in fails, display a message to the request.
+                        Log.d("register_activity", "createUserWithEmail:failure", task.getException());
+                        Toast.makeText(getApplicationContext(), Objects.requireNonNull(task.getException()).getLocalizedMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }
