@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,6 +22,8 @@ import com.google.firebase.auth.UserProfileChangeRequest;
 import com.ltl.mpmp_lab3.data.model.User;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
 import com.ltl.mpmp_lab3.databinding.ActivityRegisterBinding;
+import com.ltl.mpmp_lab3.registration.RegistrationRequest;
+import com.ltl.mpmp_lab3.ui.login.LoginActivity;
 import com.ltl.mpmp_lab3.ui.login.LoginViewModel;
 import com.ltl.mpmp_lab3.ui.login.LoginViewModelFactory;
 
@@ -67,8 +70,8 @@ public class RegisterActivity extends AppCompatActivity {
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                User user = createUser();
-                createAccount(user);
+                RegistrationRequest request = createRequest();
+                createAccount(request);
             }
         });
     }
@@ -85,36 +88,44 @@ public class RegisterActivity extends AppCompatActivity {
                 .get(LoginViewModel.class);
     }
 
-    private void createAccount(User user){
-        mAuth.createUserWithEmailAndPassword(user.getEmail(), user.getPassword())
+    private void createAccount(RegistrationRequest request){
+        mAuth.createUserWithEmailAndPassword(request.getEmail(), request.getPassword())
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
+                            // Sign in success, update UI with the signed-in request's information
                             Log.d("register_activity", "createUserWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
 
                             assert user != null;
                             UserProfileChangeRequest profileUpdates
                                     = new UserProfileChangeRequest.Builder()
-                                    .setDisplayName(user.getDisplayName())
+                                    .setDisplayName(request.getDisplayName())
                                     .build();
                             user.updateProfile(profileUpdates);
+
+                            returnToLoginActivity();
                         } else {
-                            // If sign in fails, display a message to the user.
+                            // If sign in fails, display a message to the request.
                             Log.d("register_activity", "createUserWithEmail:failure", task.getException());
                         }
                     }
                 });
     }
     
-    private User createUser(){
+    private RegistrationRequest createRequest(){
         String username = usernameEditText.getText().toString();
         String email = emailEditText.getText().toString();
         String password = passwordEditText.getText().toString();
 
 
-        return new User(username, email, password);
+        return new RegistrationRequest(username, email, password);
+    }
+
+    private void returnToLoginActivity() {
+        Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 }
