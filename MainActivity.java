@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
 //                    }
 //                });
                 signOut();
+                goToLogin();
             }
 
         });
@@ -147,8 +148,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed(){
-        // Finish all activities in stack and app closes
-        finishAffinity();
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private void init(){
@@ -337,7 +340,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("main_activity", "accountGoogle : signOut");
             }
         });
-        goToLogin();
     }
 
     private User getCurrentUser(FirebaseUser fAccount){
