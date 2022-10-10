@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
@@ -91,13 +92,13 @@ public class RegisterActivity extends AppCompatActivity {
                                 = new UserProfileChangeRequest.Builder()
                                 .setDisplayName(request.getDisplayName())
                                 .build();
-                        user.updateProfile(profileUpdates);
+                        user.updateProfile(profileUpdates)
+                                .addOnSuccessListener(unused -> returnToLoginActivity());
 
                         Log.d("register_activity", "createUserWithEmail:success");
                         Log.d("register_activity", "Email: " + user.getEmail());
                         Log.d("register_activity", "Display name:" + user.getDisplayName());
 
-                        returnToLoginActivity();
                     } else {
                         // If sign in fails, display a message to the request.
                         Log.d("register_activity", "createUserWithEmail:failure", task.getException());

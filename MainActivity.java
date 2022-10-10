@@ -281,8 +281,8 @@ public class MainActivity extends AppCompatActivity {
             points++;
             pointsText.setText(String.format(getString(R.string.current_points_text), points));
         } else {
-//            if (points > 0) points--;
             points -= penalty;
+            if (points < 0) points = 0;
             pointsText.setText(String.format(getString(R.string.current_points_text), points));
         }
     }

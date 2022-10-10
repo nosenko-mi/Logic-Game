@@ -1,5 +1,6 @@
 package com.ltl.mpmp_lab3;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -28,6 +29,7 @@ public class GameResultActivity extends AppCompatActivity {
     private ActivityGameResultBinding binding;
     private String displayName, userEmail;
     private int points, record;
+    private boolean isEmailSent = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +38,15 @@ public class GameResultActivity extends AppCompatActivity {
         View view = binding.getRoot();
         setContentView(view);
 
+        if (savedInstanceState != null){
+            isEmailSent = savedInstanceState.getBoolean("isEmailSent");
+        }
+
         init();
 
         SharedPreferences settings = getSharedPreferences(Constants.IS_EMAIL_ENABLED_EXTRA, 0);
         boolean isEmailOn = settings.getBoolean("switchkey", false);
-        if (isEmailOn){
+        if (isEmailOn && !isEmailSent){
             sendEmail();
         }
 
@@ -87,10 +93,11 @@ public class GameResultActivity extends AppCompatActivity {
             mimeMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(receiverEmail));
 
             mimeMessage.setSubject("Game results");
-            mimeMessage.setText(String.format("Hello %s, \nYou gained %d points this time!", displayName, points));
+            mimeMessage.setText(String.format("Hello %s, \nYou gained %d points!", displayName, points));
 
             Thread thread = new Thread(() -> {
                 try {
+                    isEmailSent = true;
                     Transport.send(mimeMessage);
                     Log.d("game_result_activity", "email sent");
                 } catch (MessagingException e) {
@@ -115,5 +122,11 @@ public class GameResultActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putBoolean("isEmailSent", isEmailSent);
+        super.onSaveInstanceState(outState);
     }
 }
