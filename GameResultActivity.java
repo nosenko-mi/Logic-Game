@@ -30,6 +30,7 @@ public class GameResultActivity extends AppCompatActivity {
     private String displayName, userEmail;
     private int points, record;
     private boolean isEmailSent = false;
+    MailSender mailSender;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +47,10 @@ public class GameResultActivity extends AppCompatActivity {
 
         SharedPreferences settings = getSharedPreferences(Constants.IS_EMAIL_ENABLED_EXTRA, 0);
         boolean isEmailOn = settings.getBoolean("switchkey", false);
+
         if (isEmailOn && !isEmailSent){
-            sendEmail();
+//            sendEmail();
+            isEmailSent = mailSender.sendEmail(userEmail, displayName, points);
         }
 
         binding.backButton.setOnClickListener(view1 -> backToGame());
@@ -63,6 +66,8 @@ public class GameResultActivity extends AppCompatActivity {
         binding.displayNameTextView.setText(String.format(getString(R.string.username_gained), displayName));
         binding.pointsTextView.setText(getResources().getQuantityString(R.plurals.point_plurals, points, points));
         binding.recordTextView.setText(String.format(getString(R.string.current_record_text), record));
+
+        mailSender = new MailSender(this);
     }
 
     protected void sendEmail() {

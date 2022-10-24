@@ -37,11 +37,14 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.ltl.mpmp_lab3.Config;
 import com.ltl.mpmp_lab3.Constants;
 import com.ltl.mpmp_lab3.MainActivity;
 import com.ltl.mpmp_lab3.R;
 import com.ltl.mpmp_lab3.RegisterActivity;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
+
+import java.util.Objects;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -55,11 +58,11 @@ public class LoginActivity extends AppCompatActivity {
     private RadioGroup radioGroup;
     private RadioButton normalRadioButton, hardRadioButton;
 
+//    for future
 //    private final FirebaseDatabase database = FirebaseDatabase.getInstance();
 //    private final DatabaseReference databaseReference = database.getReference("server/saving-data/game");
 //    private DatabaseReference usersReference;
     private GoogleSignInAccount account;
-
     private FirebaseAuth mAuth;
 
     ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
@@ -126,7 +129,8 @@ public class LoginActivity extends AppCompatActivity {
         GoogleSignInOptions gso = new GoogleSignInOptions
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
-                .requestIdToken(getString(R.string.web_client_id))
+//                .requestIdToken(getString(R.string.web_client_id))
+                .requestIdToken(Objects.requireNonNull(Config.getConfigValue(this, "web_client_id")))
                 .build();
 
         // Build a GoogleSignInClient with the options specified by gso.

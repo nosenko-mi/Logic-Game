@@ -98,17 +98,6 @@ public class MainActivity extends AppCompatActivity {
         logoutImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                mAuth.signOut();
-//                Log.d("main_activity", "accountFirebase : signOut");
-//                goToLogin();
-//                mGoogleSignInClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
-//                    @Override
-//                    public void onComplete(@NonNull Task<Void> task) {
-//                        Log.d("main_activity", "accountGoogle : signOut");
-//
-//                        signOut();
-//                    }
-//                });
                 signOut();
                 goToLogin();
             }
