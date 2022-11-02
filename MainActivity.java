@@ -4,6 +4,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -13,27 +17,32 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.ltl.mpmp_lab3.constants.AnswerOption;
+import com.ltl.mpmp_lab3.constants.Duration;
+import com.ltl.mpmp_lab3.constants.IntentExtra;
 import com.ltl.mpmp_lab3.data.model.User;
 import com.ltl.mpmp_lab3.ui.login.LoginActivity;
+import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler;
+import com.ltl.mpmp_lab3.utility.PenaltyHandler;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
-    private final FileHandler fileHandler = FileHandler.getInstance(Constants.RECORD_FILE_NAME, this);
+public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
+//    private final FileHandler fileHandler = FileHandler.getInstance(Constants.RECORD_FILE_NAME, this);
 
     private Button yesButton, noButton, startButton;
-    private TextView leftText, rightText, pointsText, rulesText, timerText, recordText, usernameText;
+    private TextView leftText, rightText, pointsText, rulesText, timerText, recordText, usernameText,  difficultyText;
     private ImageView logoutImage;
     private String[] colorNames;
     private int[] colors;
@@ -51,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser accountFirebase;
     private User currentUser;
 
+    private int checkedMenuItemId;
+    Menu contextMenu, optionsMenu;
+
     Random generator = new Random();
     private int penalty = 0;
 
@@ -63,51 +75,151 @@ public class MainActivity extends AppCompatActivity {
         penalty = arguments.getInt("penalty");
 
         init();
+        registerForContextMenu(startButton);
 
+        yesButton.setOnClickListener(view -> handleClick(AnswerOption.YES));
 
-        yesButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                handleClick(AnswerOptions.YES);
-            }
-        });
+        noButton.setOnClickListener(view -> handleClick(AnswerOption.NO));
 
-        noButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                handleClick(AnswerOptions.NO);
-            }
-        });
-
-        startButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    if (!isStared)
-                        startGame(Constants.GAME_DURATION_MILLIS + Constants.ANIMATION_DURATION_MILLIS);
-                    else {
-                        finishGame();
-                        goToResults(currentUser);
-                    }
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+        startButton.setOnClickListener(view -> {
+            try {
+                if (!isStared){
+                    startGame(Duration.GAME_MILLIS.getDuration() + Duration.ANIMATION_MILLIS.getDuration());
                 }
+                else {
+                    finishGame();
+                    goToResults(currentUser);
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
         });
 
-        logoutImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                signOut();
-                goToLogin();
-            }
+        startButton.setOnLongClickListener(view -> {
+            if (isStared) return false;
+            openContextMenu(view);
+            return true;
+        });
 
+        logoutImage.setOnClickListener(view -> {
+            signOut();
+            goToLogin();
+        });
+
+        difficultyText.setOnClickListener(view -> {
+            if (isStared) return;
+            showPopup(view);
         });
     }
 
     @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.action_bar_menu, menu);
+        getSupportActionBar().setTitle(currentUser.getDisplayName());
+        this.optionsMenu = menu;
 
+        menu.findItem(R.id.email_settings).setChecked(EmailPreferenceHandler.get(this));
+
+        Log.d("main_activity", "options menu created");
+
+        return true;
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        if (isStared) return;
+
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.context_menu, menu);
+        contextMenu = menu;
+        for (int i = 0; i < menu.size(); ++i) {
+            MenuItem item = menu.getItem(i);
+            if (item.getItemId() == checkedMenuItemId) {
+                item.setChecked(true);
+            }
+        }
+        Log.d("main_activity", "context menu created");
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.game_easy_settings:
+            case R.id.game_normal_settings:
+            case R.id.game_hard_settings:
+                setPenalty(item);
+                updateMenus(item);
+                return true;
+
+            default:
+                return super.onContextItemSelected(item);
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.game_easy_settings:
+            case R.id.game_normal_settings:
+            case R.id.game_hard_settings:
+                setPenalty(item);
+                updateMenus(item);
+                return true;
+
+            case R.id.email_settings:
+                item.setChecked(!item.isChecked());
+                EmailPreferenceHandler.put(this, item.isChecked());
+                return true;
+            case R.id.exit_settings:
+                signOut();
+                goToLogin();
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void showPopup(View v) {
+        PopupMenu popup = new PopupMenu(this, v);
+
+        // This activity implements OnMenuItemClickListener
+        popup.setOnMenuItemClickListener(this);
+        popup.inflate(R.menu.context_menu);
+
+        for (int i = 0; i < popup.getMenu().size(); ++i) {
+            MenuItem item = popup.getMenu().getItem(i);
+            if (item.getItemId() == checkedMenuItemId) {
+                item.setChecked(true);
+            }
+        }
+
+        popup.show();
+    }
+
+//    popup item handler
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.game_easy_settings:
+            case R.id.game_normal_settings:
+            case R.id.game_hard_settings:
+                setPenalty(item);
+                updateMenus(item);
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         if (isStared){
             timeLeftInMillis = mEndTime - System.currentTimeMillis();
         }
@@ -143,6 +255,17 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void setPenalty(MenuItem item){
+        if (isStared) return;
+        penalty = PenaltyHandler.getPenalty(item);
+    }
+
+    private void updateMenus(MenuItem item){
+        if (isStared) return;
+        optionsMenu.findItem(item.getItemId()).setChecked(true);
+        checkedMenuItemId = item.getItemId();
+    }
+
     private void init(){
 //        ui elements:
         yesButton = findViewById(R.id.yesButton);
@@ -155,7 +278,12 @@ public class MainActivity extends AppCompatActivity {
         timerText = findViewById(R.id.timerTextView);
         recordText = findViewById(R.id.recordTextView);
         usernameText = findViewById(R.id.usernameTextView);
+        difficultyText = findViewById(R.id.difficultyTextView);
         logoutImage = findViewById(R.id.logoutImageView);
+        checkedMenuItemId = R.id.game_normal_settings;
+
+        Toolbar myToolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(myToolbar);
 
 //        colors:
         colorNames = getResources().getStringArray(R.array.color_names_array);
@@ -170,9 +298,9 @@ public class MainActivity extends AppCompatActivity {
         shuffle();
 
 //        record:
-        Integer previousRecord = fileHandler.loadRecord();
-        String text = getText(R.string.record_text) + " " + previousRecord;
-        recordText.setText(text);
+//        Integer previousRecord = fileHandler.loadRecord();
+//        String text = getText(R.string.record_text) + " " + previousRecord;
+//        recordText.setText(text);
 
 //        accounts:
         mAuth = FirebaseAuth.getInstance();
@@ -235,38 +363,40 @@ public class MainActivity extends AppCompatActivity {
         timer.cancel();
         isStared = false;
         startButton.setText(getString(R.string.start_button_text));
+
         startEndingAnimations();
 
-        Integer previousRecord = fileHandler.loadRecord();
-        if (previousRecord < points){
-            updateRecord();
-        }
+//        Integer previousRecord = fileHandler.loadRecord();
+//        if (previousRecord < points){
+//            updateRecord();
+//        }
 
     }
 
     private void goToResults(User user){
         Intent intent = new Intent(this, GameResultActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        intent.putExtra(Constants.POINTS_EXTRA, points);
-        intent.putExtra(Constants.RECORD_EXTRA, fileHandler.loadRecord());
-//        put user details:
-        intent.putExtra(Constants.DISPLAY_NAME_EXTRA, user.getDisplayName());
-        intent.putExtra(Constants.USER_EMAIL_EXTRA, user.getEmail());
+
+        intent.putExtra(IntentExtra.POINTS_EXTRA.getValue(), points);
+//        intent.putExtra(IntentExtra.RECORD_EXTRA.getValue(), fileHandler.loadRecord());
+        intent.putExtra(IntentExtra.DISPLAY_NAME_EXTRA.getValue(), user.getDisplayName());
+        intent.putExtra(IntentExtra.USER_EMAIL_EXTRA.getValue(), user.getEmail());
+
 
         startActivity(intent);
     }
 
-    private void handleClick(AnswerOptions answerOptions) {
-        checkAnswer(answerOptions);
+    private void handleClick(AnswerOption answerOption) {
+        checkAnswer(answerOption);
         shuffle();
     }
 
-    private void checkAnswer(AnswerOptions answer){
+    private void checkAnswer(AnswerOption answer){
         int expectedColor = colorsMap.get(leftText.getText());
-        if (expectedColor == rightText.getCurrentTextColor() && answer == AnswerOptions.YES){
+        if (expectedColor == rightText.getCurrentTextColor() && answer == AnswerOption.YES){
             points++;
             pointsText.setText(String.format(getString(R.string.current_points_text), points));
-        } else if (expectedColor != rightText.getCurrentTextColor() && answer == AnswerOptions.NO){
+        } else if (expectedColor != rightText.getCurrentTextColor() && answer == AnswerOption.NO){
             points++;
             pointsText.setText(String.format(getString(R.string.current_points_text), points));
         } else {
@@ -290,9 +420,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void startOpeningAnimations(){
         Animation moveUp = AnimationUtils.loadAnimation(MainActivity.this, R.anim.move_upwards_disappear);
-//        Animation moveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.move_downwards_disappear);
+        Animation moveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.move_downwards_disappear);
         rulesText.startAnimation(moveUp);
         startButton.setText(getString(R.string.stop_button_text));
+        difficultyText.startAnimation(moveDown);
 
         Animation reverseMoveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.reverse_move_downwards_disappear);
         yesButton.startAnimation(reverseMoveDown);
@@ -301,10 +432,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void startEndingAnimations(){
         Animation reverseMoveUp = AnimationUtils.loadAnimation(MainActivity.this, R.anim.reverse_move_upwards_disappear);
-//        Animation reverseMoveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.reverse_move_downwards_disappear);
+        Animation reverseMoveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.reverse_move_downwards_disappear);
         rulesText.startAnimation(reverseMoveUp);
         startButton.setText(getString(R.string.start_button_text));
-
+        difficultyText.startAnimation(reverseMoveDown);
 
         Animation moveDown = AnimationUtils.loadAnimation(MainActivity.this, R.anim.move_downwards_disappear);
         yesButton.startAnimation(moveDown);
@@ -323,12 +454,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d("main_activity", "accountFirebase : signOut");
         mAuth.signOut();
 
-        mGoogleSignInClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                Log.d("main_activity", "accountGoogle : signOut");
-            }
-        });
+        mGoogleSignInClient.signOut().addOnCompleteListener(task -> Log.d("main_activity", "accountGoogle : signOut"));
     }
 
     private User getCurrentUser(FirebaseUser fAccount){
@@ -339,8 +465,8 @@ public class MainActivity extends AppCompatActivity {
         return new User(gAccount.getDisplayName(), gAccount.getEmail());
     }
 
-    private void updateRecord(){
-        fileHandler.saveRecord(points);
-        recordText.setText(String.format(getString(R.string.current_record_text), points));
-    }
+//    private void updateRecord(){
+//        fileHandler.saveRecord(points);
+//        recordText.setText(String.format(getString(R.string.current_record_text), points));
+//    }
 }
