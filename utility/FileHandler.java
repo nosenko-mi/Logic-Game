@@ -1,4 +1,4 @@
-package com.ltl.mpmp_lab3;
+package com.ltl.mpmp_lab3.utility;
 
 import android.content.Context;
 

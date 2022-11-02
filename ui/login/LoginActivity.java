@@ -8,7 +8,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -18,12 +17,8 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -38,11 +33,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.ltl.mpmp_lab3.Config;
-import com.ltl.mpmp_lab3.Constants;
 import com.ltl.mpmp_lab3.MainActivity;
-import com.ltl.mpmp_lab3.R;
 import com.ltl.mpmp_lab3.RegisterActivity;
+import com.ltl.mpmp_lab3.constants.IntentExtra;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
+import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler;
 
 import java.util.Objects;
 
@@ -129,7 +124,6 @@ public class LoginActivity extends AppCompatActivity {
         GoogleSignInOptions gso = new GoogleSignInOptions
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
-//                .requestIdToken(getString(R.string.web_client_id))
                 .requestIdToken(Objects.requireNonNull(Config.getConfigValue(this, "web_client_id")))
                 .build();
 
@@ -155,10 +149,7 @@ public class LoginActivity extends AppCompatActivity {
         emailSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                SharedPreferences settings = getSharedPreferences(Constants.IS_EMAIL_ENABLED_EXTRA, 0);
-                SharedPreferences.Editor editor = settings.edit();
-                editor.putBoolean("switchkey", emailSwitch.isChecked());
-                editor.apply();
+                EmailPreferenceHandler.put(getApplicationContext(), emailSwitch.isChecked());
             }
         });
 
@@ -184,7 +175,7 @@ public class LoginActivity extends AppCompatActivity {
 
         emailSwitch = binding.sendEmailSwitch;
 
-        SharedPreferences settings = getSharedPreferences(Constants.IS_EMAIL_ENABLED_EXTRA, 0);
+        SharedPreferences settings = getSharedPreferences(IntentExtra.IS_EMAIL_ENABLED_EXTRA.getValue(), 0);
         boolean switchState = settings.getBoolean("switchkey", false);
         emailSwitch.setChecked(switchState);
 
@@ -259,4 +250,5 @@ public class LoginActivity extends AppCompatActivity {
 
         return penalty;
     }
+
 }
