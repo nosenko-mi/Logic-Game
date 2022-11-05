@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         this.optionsMenu = menu;
 
         menu.findItem(R.id.email_settings).setChecked(EmailPreferenceHandler.get(this));
-
+        setPenalty(menu.findItem(R.id.game_normal_settings));
         Log.d("main_activity", "options menu created");
 
         return true;
