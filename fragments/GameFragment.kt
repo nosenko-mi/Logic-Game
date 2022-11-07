@@ -25,6 +25,7 @@ import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler
 import com.ltl.mpmp_lab3.utility.GameMaster
 import com.ltl.mpmp_lab3.utility.PenaltyHandler
 import java.io.FileNotFoundException
+import java.lang.RuntimeException
 import java.util.*
 
 
@@ -51,7 +52,6 @@ class GameFragment : Fragment() {
     private var points: Int = 0
     private var isStared: Boolean = false
     private var penalty: Int = 1
-    var generator = Random()
     private lateinit var gm: GameMaster
 
     private var checkedMenuItemId = 0
@@ -66,12 +66,8 @@ class GameFragment : Fragment() {
 
         gm = GameMaster(requireActivity().applicationContext)
 
-        colorNames = resources.getStringArray(R.array.color_names_array)
-        colors = resources.getIntArray(R.array.game_colors_array)
-        require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
-        for (i in colorNames.indices) {
-            colorsMap[colorNames[i]] = colors[i]
-        }
+
+        initColorsMap()
 
         activity?.onBackPressedDispatcher?.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -80,7 +76,16 @@ class GameFragment : Fragment() {
         })
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    private fun initColorsMap(){
+        colorNames = resources.getStringArray(R.array.color_names_array)
+        colors = resources.getIntArray(R.array.game_colors_array)
+        require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
+        for (i in colorNames.indices) {
+            colorsMap[colorNames[i]] = colors[i]
+        }
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
 //        _binding = FragmentGameBinding.inflate(inflater, container, false)
 //        val view = binding.root
 
@@ -89,7 +94,13 @@ class GameFragment : Fragment() {
 
         shuffle()
 
-//        accounts:
+        initCurrentUser()
+
+        return view
+    }
+
+    private fun initCurrentUser(){
+        //        accounts:
         mAuth = FirebaseAuth.getInstance()
         accountFirebase = mAuth!!.currentUser
 
@@ -107,8 +118,6 @@ class GameFragment : Fragment() {
             currentUser = getCurrentUser(accountGoogle!!)
             Log.d("main_activity", "accountGoogle : ok")
         }
-
-        return view
     }
 
     override fun onDestroyView() {
@@ -119,17 +128,17 @@ class GameFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.yesButton.setOnClickListener(View.OnClickListener {
+        binding.yesButton.setOnClickListener {
             handleClick(
                 AnswerOption.YES
             )
-        })
+        }
 
-        binding.noButton.setOnClickListener(View.OnClickListener {
+        binding.noButton.setOnClickListener {
             handleClick(
                 AnswerOption.NO
             )
-        })
+        }
 
         binding.startButton.setOnClickListener{
             try {
@@ -148,7 +157,7 @@ class GameFragment : Fragment() {
 
         binding.toolbar.title = currentUser.displayName
         binding.toolbar.menu.findItem(R.id.email_settings).isChecked =
-            EmailPreferenceHandler.get(context);
+            EmailPreferenceHandler.get(context)
 
         binding.toolbar.setOnMenuItemClickListener{
             when (it.itemId) {
@@ -178,11 +187,16 @@ class GameFragment : Fragment() {
         if (isStared) {
             timeLeftInMillis = mEndTime!! - System.currentTimeMillis()
         }
-        outState.putInt("points", gm.points)
-        outState.putLong("millisLeft", timeLeftInMillis)
-        outState.putBoolean("isStarted", isStared)
-        outState.putLong("endTime", mEndTime!!)
-        outState.putSerializable("gm", gm)
+        try {
+            outState.putInt("points", gm.points)
+            outState.putLong("millisLeft", timeLeftInMillis)
+            outState.putBoolean("isStarted", isStared)
+            outState.putLong("endTime", mEndTime!!)
+            outState.putSerializable("gm", gm)
+        } catch (e: RuntimeException){
+            Log.e("main_activity", e.toString())
+        }
+
 
         super.onSaveInstanceState(outState)
     }
@@ -234,15 +248,25 @@ class GameFragment : Fragment() {
 
     private fun  finishGame() {
         Log.d("main_activity", "game finished")
+        Log.d("main_activity", "finishGame timer: " + timer.toString())
+
         timer!!.cancel()
+        Log.d("main_activity", "finishGame timer: " + timer.toString())
+
         isStared = false
     }
 
     private fun renderFinishedUi(){
+        if (!isAttached) {
+            Log.d("main_activity", "renderFinishedUi() fragment is not attached")
+            return
+        }
 
+        Log.d("main_activity", "renderFinishedUi() start")
         binding.timerTextView.setText(R.string.finished_text)
         binding.startButton.text = getString(R.string.start_button_text)
         startEndingAnimations()
+        Log.d("main_activity", "renderFinishedUi() finished")
     }
 
     private fun finishGameSequence(){
@@ -272,6 +296,7 @@ class GameFragment : Fragment() {
                 finishGameSequence()
             }
         }.start()
+        Log.d("main_activity", "timer: " + timer.toString())
     }
 
 
@@ -362,7 +387,7 @@ class GameFragment : Fragment() {
 
     fun goToResults(user: User) {
         val action = GameFragmentDirections.goToResultFragment(user.displayName, user.email, gm.points)
-        Navigation.findNavController(requireView()).navigate(action)
+        view?.let { Navigation.findNavController(it).navigate(action) }
     }
 
     fun goToLogin() {
