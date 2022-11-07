@@ -14,7 +14,6 @@ public class AppConfig {
 
     public static String getConfigValue(Context context, String name) {
         Resources resources = context.getResources();
-
         try {
             InputStream rawResource = resources.openRawResource(R.raw.app);
             Properties properties = new Properties();
