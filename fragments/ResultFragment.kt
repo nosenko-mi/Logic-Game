@@ -49,7 +49,7 @@ class ResultFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.backButton.setOnClickListener{
-            goToGame();
+            goToGame()
         }
     }
 
@@ -72,11 +72,11 @@ class ResultFragment : Fragment() {
     }
 
     fun sendMessage(){
-        mailSender = MailSender.getInstance(context)
+        mailSender = MailSender.getInstance()
 
         val isEmailOn = EmailPreferenceHandler.get(context)
         if (isEmailOn) {
-            mailSender.sendInNotSent(userEmail, userDisplayName, userScore)
+            mailSender.sendInNotSent(context, userEmail, userDisplayName, userScore)
         }
     }
 
