@@ -65,6 +65,14 @@ class GameFragment : Fragment() {
         super.onCreate(savedInstanceState)
 
         gm = GameMaster(requireActivity().applicationContext)
+
+        colorNames = resources.getStringArray(R.array.color_names_array)
+        colors = resources.getIntArray(R.array.game_colors_array)
+        require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
+        for (i in colorNames.indices) {
+            colorsMap[colorNames[i]] = colors[i]
+        }
+
         activity?.onBackPressedDispatcher?.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 activity!!.finish()
@@ -79,14 +87,6 @@ class GameFragment : Fragment() {
         binding = FragmentGameBinding.inflate(inflater, container, false)
         val view = binding.root
 
-//        gm = GameMaster(requireActivity().applicationContext)
-
-        colorNames = resources.getStringArray(R.array.color_names_array)
-        colors = resources.getIntArray(R.array.game_colors_array)
-        require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
-        for (i in colorNames.indices) {
-            colorsMap[colorNames[i]] = colors[i]
-        }
         shuffle()
 
 //        accounts:
@@ -167,8 +167,7 @@ class GameFragment : Fragment() {
                     goToLogin()
                     true
                 }
-                else ->                 // If we got here, the user's action was not recognized.
-                    // Invoke the superclass to handle it.
+                else ->
                     super.onOptionsItemSelected(it)
             }
         }
@@ -270,13 +269,6 @@ class GameFragment : Fragment() {
             }
 
             override fun onFinish() {
-//                binding.timerTextView.setText(R.string.finished_text)
-//                binding.startButton.text = getString(R.string.start_button_text)
-
-//                renderFinishedUi()
-//                finishGame()
-//                goToResults(currentUser)
-
                 finishGameSequence()
             }
         }.start()
