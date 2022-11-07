@@ -6,10 +6,10 @@ import com.ltl.mpmp_lab3.constants.AnswerOption
 import java.io.Serializable
 import java.util.*
 
-class GameMaster(val context: Context) :Serializable {
+class GameMaster constructor(context: Context) : Serializable {
 
-    private var colorNames: Array<String> = context.resources.getStringArray(R.array.color_names_array)
-    private var colors: IntArray = context.resources.getIntArray(R.array.game_colors_array)
+    private var colorNames: Array<String>
+    private var colors: IntArray
     private val colorsMap = HashMap<String, Int>()
 
     private var generator = Random()
@@ -18,6 +18,8 @@ class GameMaster(val context: Context) :Serializable {
     var penalty: Int = 1
 
     init {
+        colorNames = context.resources.getStringArray(R.array.color_names_array)
+        colors = context.resources.getIntArray(R.array.game_colors_array)
         require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
         for (i in colorNames.indices) {
             colorsMap[colorNames[i]] = colors[i]
