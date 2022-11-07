@@ -5,24 +5,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import com.ltl.mpmp_lab3.constants.IntentExtra;
 import com.ltl.mpmp_lab3.databinding.ActivityGameResultBinding;
 import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler;
 import com.ltl.mpmp_lab3.utility.MailSender;
-
-import java.util.Properties;
-
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 
 public class GameResultActivity extends AppCompatActivity {
     public static final String RECORD_FILE_NAME = "record.txt";
@@ -32,7 +20,8 @@ public class GameResultActivity extends AppCompatActivity {
     private String displayName, userEmail;
     private int points, record;
     private boolean isEmailSent = false;
-    MailSender mailSender = new MailSender(this);
+//    MailSender mailSender = new MailSender(this);
+    MailSender mailSender = MailSender.getInstance(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +41,7 @@ public class GameResultActivity extends AppCompatActivity {
 
         boolean isEmailOn = EmailPreferenceHandler.get(this);
         if (isEmailOn){
-            mailSender.sendWithThread(userEmail, displayName, points);
+            mailSender.sendInNotSent(userEmail, displayName, points);
         }
     }
 

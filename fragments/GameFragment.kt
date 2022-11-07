@@ -1,0 +1,405 @@
+package com.ltl.mpmp_lab3.fragments
+
+import android.content.Context
+import android.os.Bundle
+import android.os.CountDownTimer
+import android.util.Log
+import android.view.*
+import android.view.animation.AnimationUtils
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.navigation.Navigation
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.ltl.mpmp_lab3.R
+import com.ltl.mpmp_lab3.constants.AnswerOption
+import com.ltl.mpmp_lab3.constants.Duration
+import com.ltl.mpmp_lab3.data.model.User
+import com.ltl.mpmp_lab3.databinding.FragmentGameBinding
+import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler
+import com.ltl.mpmp_lab3.utility.GameMaster
+import com.ltl.mpmp_lab3.utility.PenaltyHandler
+import java.io.FileNotFoundException
+import java.util.*
+
+
+class GameFragment : Fragment() {
+
+//    private var _binding: FragmentGameBinding? = null
+//    // This property is only valid between onCreateView and
+//    // onDestroyView.
+//    private val binding get() = _binding!!
+
+    private lateinit var binding: FragmentGameBinding
+    private var isAttached: Boolean = false
+
+    var accountGoogle: GoogleSignInAccount? = null
+    var gso: GoogleSignInOptions? = null
+    var mGoogleSignInClient: GoogleSignInClient? = null
+    private var mAuth: FirebaseAuth? = null
+    private var accountFirebase: FirebaseUser? = null
+    private lateinit var currentUser: User
+
+    private var timer: CountDownTimer? = null
+    private var timeLeftInMillis: Long = 0L
+    private var mEndTime: Long? = 0L
+    private var points: Int = 0
+    private var isStared: Boolean = false
+    private var penalty: Int = 1
+    var generator = Random()
+    private lateinit var gm: GameMaster
+
+    private var checkedMenuItemId = 0
+    var optionsMenu:Menu? = null
+
+    private lateinit var colorNames: Array<String>
+    private lateinit var colors: IntArray
+    private val colorsMap = HashMap<String, Int>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        gm = GameMaster(requireActivity().applicationContext)
+        activity?.onBackPressedDispatcher?.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                activity!!.finish()
+            }
+        })
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+//        _binding = FragmentGameBinding.inflate(inflater, container, false)
+//        val view = binding.root
+
+        binding = FragmentGameBinding.inflate(inflater, container, false)
+        val view = binding.root
+
+//        gm = GameMaster(requireActivity().applicationContext)
+
+        colorNames = resources.getStringArray(R.array.color_names_array)
+        colors = resources.getIntArray(R.array.game_colors_array)
+        require(colorNames.size == colors.size) { "The number of keys doesn't match the number of values." }
+        for (i in colorNames.indices) {
+            colorsMap[colorNames[i]] = colors[i]
+        }
+        shuffle()
+
+//        accounts:
+        mAuth = FirebaseAuth.getInstance()
+        accountFirebase = mAuth!!.currentUser
+
+        accountGoogle = GoogleSignIn.getLastSignedInAccount(requireContext())
+        gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .build()
+        mGoogleSignInClient = GoogleSignIn.getClient(requireContext(), gso!!)
+
+        if (accountFirebase != null) {
+            currentUser = getCurrentUser(accountFirebase!!)
+            Log.d("main_activity", "accountFirebase : ok")
+        }
+        if (accountGoogle != null) {
+            currentUser = getCurrentUser(accountGoogle!!)
+            Log.d("main_activity", "accountGoogle : ok")
+        }
+
+        return view
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+//        _binding = null
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.yesButton.setOnClickListener(View.OnClickListener {
+            handleClick(
+                AnswerOption.YES
+            )
+        })
+
+        binding.noButton.setOnClickListener(View.OnClickListener {
+            handleClick(
+                AnswerOption.NO
+            )
+        })
+
+        binding.startButton.setOnClickListener{
+            try {
+                if (!isStared) {
+                    startGame(Duration.TEST_GAME_MILLIS.duration + Duration.ANIMATION_MILLIS.duration)
+                } else {
+                    finishGameSequence()
+                }
+            } catch (e: FileNotFoundException) {
+                e.printStackTrace()
+            }
+        }
+
+        binding.toolbar.inflateMenu(R.menu.action_bar_menu)
+        optionsMenu = binding.toolbar.menu
+
+        binding.toolbar.title = currentUser.displayName
+        binding.toolbar.menu.findItem(R.id.email_settings).isChecked =
+            EmailPreferenceHandler.get(context);
+
+        binding.toolbar.setOnMenuItemClickListener{
+            when (it.itemId) {
+                R.id.game_easy_settings, R.id.game_normal_settings, R.id.game_hard_settings -> {
+                    setPenalty(it)
+                    updateMenus(it)
+                    true
+                }
+                R.id.email_settings -> {
+                    it.isChecked = !it.isChecked
+                    EmailPreferenceHandler.put(context, it.isChecked)
+                    true
+                }
+                R.id.exit_settings -> {
+                    signOut()
+                    goToLogin()
+                    true
+                }
+                else ->                 // If we got here, the user's action was not recognized.
+                    // Invoke the superclass to handle it.
+                    super.onOptionsItemSelected(it)
+            }
+        }
+
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (isStared) {
+            timeLeftInMillis = mEndTime!! - System.currentTimeMillis()
+        }
+        outState.putInt("points", gm.points)
+        outState.putLong("millisLeft", timeLeftInMillis)
+        outState.putBoolean("isStarted", isStared)
+        outState.putLong("endTime", mEndTime!!)
+        outState.putSerializable("gm", gm)
+
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+
+        if (savedInstanceState != null) {
+            gm = savedInstanceState.getSerializable("gm") as GameMaster
+            timeLeftInMillis = savedInstanceState.getLong("millisLeft")
+            isStared = savedInstanceState.getBoolean("isStarted")
+            mEndTime = savedInstanceState.getLong("endTime")
+        }
+
+        if (isStared) {
+            binding.pointsTextView.text =
+                String.format(getString(R.string.current_points_text), gm.points)
+            binding.yesButton.isVisible = true
+            binding.noButton.isVisible = true
+
+            startTimer(timeLeftInMillis)
+
+            binding.startButton.text = getString(R.string.stop_button_text)
+        }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        Log.d("main_activity", "isAttached = true")
+        isAttached = true
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        Log.d("main_activity", "isAttached = false")
+        isAttached = false
+    }
+
+    private fun startGame(timeMillis: Long) {
+        Log.d("main_activity", "game started")
+        isStared = true
+        gm.start()
+        points = 0
+        binding.pointsTextView.text = String.format(getString(R.string.current_points_text), points)
+        startOpeningAnimations()
+        mEndTime = System.currentTimeMillis() + timeMillis
+        startTimer(timeMillis)
+    }
+
+    private fun  finishGame() {
+        Log.d("main_activity", "game finished")
+        timer!!.cancel()
+        isStared = false
+    }
+
+    private fun renderFinishedUi(){
+
+        binding.timerTextView.setText(R.string.finished_text)
+        binding.startButton.text = getString(R.string.start_button_text)
+        startEndingAnimations()
+    }
+
+    private fun finishGameSequence(){
+        renderFinishedUi()
+        finishGame()
+        goToResults(currentUser)
+    }
+
+    private fun startTimer(timeMillis: Long) {
+        timer = object : CountDownTimer(timeMillis, 1) {
+            override fun onTick(l: Long) {
+                timeLeftInMillis = l
+                when {
+                    l > 60000 -> {
+                        binding.timerTextView.text = "01:00"
+                    }
+                    l > 10000 -> {
+                        binding.timerTextView.text = String.format("00:%d", l / 1000)
+                    }
+                    else -> {
+                        binding.timerTextView.text = String.format("00:0%d", l / 1000)
+                    }
+                }
+            }
+
+            override fun onFinish() {
+//                binding.timerTextView.setText(R.string.finished_text)
+//                binding.startButton.text = getString(R.string.start_button_text)
+
+//                renderFinishedUi()
+//                finishGame()
+//                goToResults(currentUser)
+
+                finishGameSequence()
+            }
+        }.start()
+    }
+
+
+
+    private fun handleClick(answerOption: AnswerOption) {
+        gm.checkAnswer(
+            answerOption,
+            binding.leftTextView.text,
+            binding.rightTextView.currentTextColor
+        )
+        binding.pointsTextView.text =
+            String.format(getString(R.string.current_points_text), gm.points)
+
+        shuffle()
+    }
+
+    fun checkAnswer(answer: AnswerOption) {
+        val expectedColor: Int = colorsMap[binding.leftTextView.text]!!
+        if (expectedColor == binding.rightTextView.currentTextColor && answer == AnswerOption.YES) {
+            points++
+        } else if (expectedColor != binding.rightTextView.currentTextColor && answer == AnswerOption.NO) {
+            points++
+
+        } else {
+            points -= penalty
+            if (points < 0) points = 0
+        }
+        binding.pointsTextView.text =
+            String.format(getString(R.string.current_points_text), points)
+    }
+
+    private fun shuffle() {
+/*        var randomTextIndex: Int = generator.nextInt(colors.size)
+        var randomColorIndex: Int = generator.nextInt(colorNames.size)
+        binding.leftTextView.text = colorNames[randomTextIndex]
+        binding.leftTextView.setTextColor(colors[randomColorIndex])
+        randomTextIndex = generator.nextInt(colors.size)
+        randomColorIndex = generator.nextInt(colorNames.size)
+        binding.rightTextView.text = colorNames[randomTextIndex]
+        binding.rightTextView.setTextColor(colors[randomColorIndex])*/
+
+        val indices: IntArray = gm.shuffle()
+
+        binding.leftTextView.text = colorNames[indices[0]]
+        binding.leftTextView.setTextColor(colors[indices[1]])
+        binding.rightTextView.text = colorNames[indices[2]]
+        binding.rightTextView.setTextColor(colors[indices[3]])
+    }
+
+    private fun setPenalty(item: MenuItem) {
+        if (isStared) return
+        penalty = PenaltyHandler.getPenalty(item)
+        gm.penalty = penalty
+    }
+
+    private fun updateMenus(item: MenuItem) {
+        if (isStared) return
+        binding.toolbar.menu.findItem(item.itemId).isChecked = true
+        checkedMenuItemId = item.itemId
+    }
+
+    private fun startOpeningAnimations() {
+        val moveUp = AnimationUtils.loadAnimation(context, R.anim.move_upwards_disappear)
+        val moveDown =
+            AnimationUtils.loadAnimation(context, R.anim.move_downwards_disappear)
+        binding.rulesTextView.startAnimation(moveUp)
+        binding.startButton.text = getString(R.string.stop_button_text)
+        binding.difficultyTextView.startAnimation(moveDown)
+        val reverseMoveDown =
+            AnimationUtils.loadAnimation(context, R.anim.reverse_move_downwards_disappear)
+        binding.yesButton.startAnimation(reverseMoveDown)
+        binding.noButton.startAnimation(reverseMoveDown)
+    }
+
+    private fun startEndingAnimations() {
+        val reverseMoveUp =
+            AnimationUtils.loadAnimation(context, R.anim.reverse_move_upwards_disappear)
+        val reverseMoveDown =
+            AnimationUtils.loadAnimation(context, R.anim.reverse_move_downwards_disappear)
+        binding.rulesTextView.startAnimation(reverseMoveUp)
+        binding.startButton.text = getString(R.string.start_button_text)
+        binding.difficultyTextView.startAnimation(reverseMoveDown)
+        val moveDown =
+            AnimationUtils.loadAnimation(context, R.anim.move_downwards_disappear)
+        binding.yesButton.startAnimation(moveDown)
+        binding.noButton.startAnimation(moveDown)
+    }
+
+    fun goToResults(user: User) {
+        val action = GameFragmentDirections.goToResultFragment(user.displayName, user.email, gm.points)
+        Navigation.findNavController(requireView()).navigate(action)
+    }
+
+    fun goToLogin() {
+
+        Navigation.findNavController(requireView()).navigate(R.id.goToLoginFragment)
+    }
+
+    private fun signOut() {
+        if (isStared) {
+            renderFinishedUi()
+            finishGame()
+        }
+        mAuth!!.signOut()
+        Log.d("main_activity", "accountFirebase : signOut")
+        mGoogleSignInClient!!.signOut()
+            .addOnCompleteListener {
+                Log.d("main_activity", "accountGoogle : signOut")
+            }
+    }
+
+    private fun getCurrentUser(fAccount: FirebaseUser): User {
+        return User(fAccount.displayName, fAccount.email)
+    }
+
+    private fun getCurrentUser(gAccount: GoogleSignInAccount): User {
+        return User(gAccount.displayName, gAccount.email)
+    }
+
+
+
+
+}

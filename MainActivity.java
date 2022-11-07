@@ -1,14 +1,12 @@
 package com.ltl.mpmp_lab3;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
-import android.view.ContextMenu;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
@@ -17,8 +15,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -27,18 +25,17 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.ltl.mpmp_lab3.constants.AnswerOption;
-import com.ltl.mpmp_lab3.constants.Duration;
 import com.ltl.mpmp_lab3.constants.IntentExtra;
 import com.ltl.mpmp_lab3.data.model.User;
+import com.ltl.mpmp_lab3.fragments.LoginFragment;
 import com.ltl.mpmp_lab3.ui.login.LoginActivity;
-import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler;
 import com.ltl.mpmp_lab3.utility.PenaltyHandler;
 
 import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
+public class MainActivity extends AppCompatActivity {
 //    private final FileHandler fileHandler = FileHandler.getInstance(Constants.RECORD_FILE_NAME, this);
 
     private Button yesButton, noButton, startButton;
@@ -71,10 +68,20 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Bundle arguments = getIntent().getExtras();
-        penalty = arguments.getInt("penalty");
+//        Bundle arguments = getIntent().getExtras();
+//        penalty = arguments.getInt("penalty");
 
         init();
+
+//        using frame layout for navigation between fragments: !(from LoginActivity)
+//        FragmentManager fragmentManager = getSupportFragmentManager();
+//        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+//        fragmentTransaction.replace(R.id.fragment_fl, new LoginFragment());
+//        fragmentTransaction.addToBackStack(null);
+//        fragmentTransaction.commit();
+
+
+/*        init();
         registerForContextMenu(startButton);
 
         yesButton.setOnClickListener(view -> handleClick(AnswerOption.YES));
@@ -109,9 +116,25 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         difficultyText.setOnClickListener(view -> {
             if (isStared) return;
             showPopup(view);
-        });
+        });*/
+
     }
 
+
+//    @Override
+//    public void onBackPressed(){
+//        Intent intent = new Intent(Intent.ACTION_MAIN);
+//        intent.addCategory(Intent.CATEGORY_HOME);
+//        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        startActivity(intent);
+//    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
+    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.action_bar_menu, menu);
@@ -123,137 +146,131 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         Log.d("main_activity", "options menu created");
 
         return true;
-    }
+    }*/
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        if (isStared) return;
+//    @Override
+//    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+//        if (isStared) return;
+//
+//        super.onCreateContextMenu(menu, v, menuInfo);
+//        MenuInflater inflater = getMenuInflater();
+//        inflater.inflate(R.menu.context_menu, menu);
+//        contextMenu = menu;
+//        for (int i = 0; i < menu.size(); ++i) {
+//            MenuItem item = menu.getItem(i);
+//            if (item.getItemId() == checkedMenuItemId) {
+//                item.setChecked(true);
+//            }
+//        }
+//        Log.d("main_activity", "context menu created");
+//    }
+//
+//    @Override
+//    public boolean onContextItemSelected(MenuItem item) {
+//        switch (item.getItemId()) {
+//            case R.id.game_easy_settings:
+//            case R.id.game_normal_settings:
+//            case R.id.game_hard_settings:
+//                setPenalty(item);
+//                updateMenus(item);
+//                return true;
+//
+//            default:
+//                return super.onContextItemSelected(item);
+//        }
+//    }
 
-        super.onCreateContextMenu(menu, v, menuInfo);
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.context_menu, menu);
-        contextMenu = menu;
-        for (int i = 0; i < menu.size(); ++i) {
-            MenuItem item = menu.getItem(i);
-            if (item.getItemId() == checkedMenuItemId) {
-                item.setChecked(true);
-            }
-        }
-        Log.d("main_activity", "context menu created");
-    }
+//    @Override
+//    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+//        switch (item.getItemId()) {
+//            case R.id.game_easy_settings:
+//            case R.id.game_normal_settings:
+//            case R.id.game_hard_settings:
+//                setPenalty(item);
+//                updateMenus(item);
+//                return true;
+//
+//            case R.id.email_settings:
+//                item.setChecked(!item.isChecked());
+//                EmailPreferenceHandler.put(this, item.isChecked());
+//                return true;
+//            case R.id.exit_settings:
+//                signOut();
+//                goToLogin();
+//                return true;
+//
+//            default:
+//                // If we got here, the user's action was not recognized.
+//                // Invoke the superclass to handle it.
+//                return super.onOptionsItemSelected(item);
+//        }
+//    }
 
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.game_easy_settings:
-            case R.id.game_normal_settings:
-            case R.id.game_hard_settings:
-                setPenalty(item);
-                updateMenus(item);
-                return true;
+//    public void showPopup(View v) {
+//        PopupMenu popup = new PopupMenu(this, v);
+//
+//        // This activity implements OnMenuItemClickListener
+//        popup.setOnMenuItemClickListener(this);
+//        popup.inflate(R.menu.context_menu);
+//
+//        for (int i = 0; i < popup.getMenu().size(); ++i) {
+//            MenuItem item = popup.getMenu().getItem(i);
+//            if (item.getItemId() == checkedMenuItemId) {
+//                item.setChecked(true);
+//            }
+//        }
+//
+//        popup.show();
+//    }
+//
+////    popup item handler
+//    @Override
+//    public boolean onMenuItemClick(MenuItem item) {
+//        switch (item.getItemId()) {
+//            case R.id.game_easy_settings:
+//            case R.id.game_normal_settings:
+//            case R.id.game_hard_settings:
+//                setPenalty(item);
+//                updateMenus(item);
+//                return true;
+//
+//            default:
+//                // If we got here, the user's action was not recognized.
+//                // Invoke the superclass to handle it.
+//                return super.onOptionsItemSelected(item);
+//        }
+//    }
 
-            default:
-                return super.onContextItemSelected(item);
-        }
-    }
+//    @Override
+//    protected void onSaveInstanceState(@NonNull Bundle outState) {
+//        if (isStared){
+//            timeLeftInMillis = mEndTime - System.currentTimeMillis();
+//        }
+//        outState.putInt("points", points);
+//        outState.putLong("millisLeft", timeLeftInMillis);
+//        outState.putBoolean("isStarted", isStared);
+//        outState.putLong("endTime", mEndTime);
+//
+//        super.onSaveInstanceState(outState);
+//    }
+//
+//    @Override
+//    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+//        super.onRestoreInstanceState(savedInstanceState);
+//
+//        points = savedInstanceState.getInt("points");
+//        timeLeftInMillis = savedInstanceState.getLong("millisLeft");
+//        isStared = savedInstanceState.getBoolean("isStarted");
+//        mEndTime = savedInstanceState.getLong("endTime");
+//
+//        if (isStared){
+//            pointsText.setText(String.format(getString(R.string.current_points_text), points));
+//            startTimer(timeLeftInMillis);
+//            startButton.setText(getString(R.string.stop_button_text));
+//        }
+//    }
+//
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.game_easy_settings:
-            case R.id.game_normal_settings:
-            case R.id.game_hard_settings:
-                setPenalty(item);
-                updateMenus(item);
-                return true;
-
-            case R.id.email_settings:
-                item.setChecked(!item.isChecked());
-                EmailPreferenceHandler.put(this, item.isChecked());
-                return true;
-            case R.id.exit_settings:
-                signOut();
-                goToLogin();
-                return true;
-
-            default:
-                // If we got here, the user's action was not recognized.
-                // Invoke the superclass to handle it.
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    public void showPopup(View v) {
-        PopupMenu popup = new PopupMenu(this, v);
-
-        // This activity implements OnMenuItemClickListener
-        popup.setOnMenuItemClickListener(this);
-        popup.inflate(R.menu.context_menu);
-
-        for (int i = 0; i < popup.getMenu().size(); ++i) {
-            MenuItem item = popup.getMenu().getItem(i);
-            if (item.getItemId() == checkedMenuItemId) {
-                item.setChecked(true);
-            }
-        }
-
-        popup.show();
-    }
-
-//    popup item handler
-    @Override
-    public boolean onMenuItemClick(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.game_easy_settings:
-            case R.id.game_normal_settings:
-            case R.id.game_hard_settings:
-                setPenalty(item);
-                updateMenus(item);
-                return true;
-
-            default:
-                // If we got here, the user's action was not recognized.
-                // Invoke the superclass to handle it.
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        if (isStared){
-            timeLeftInMillis = mEndTime - System.currentTimeMillis();
-        }
-        outState.putInt("points", points);
-        outState.putLong("millisLeft", timeLeftInMillis);
-        outState.putBoolean("isStarted", isStared);
-        outState.putLong("endTime", mEndTime);
-
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-
-        points = savedInstanceState.getInt("points");
-        timeLeftInMillis = savedInstanceState.getLong("millisLeft");
-        isStared = savedInstanceState.getBoolean("isStarted");
-        mEndTime = savedInstanceState.getLong("endTime");
-
-        if (isStared){
-            pointsText.setText(String.format(getString(R.string.current_points_text), points));
-            startTimer(timeLeftInMillis);
-            startButton.setText(getString(R.string.stop_button_text));
-        }
-    }
-
-    @Override
-    public void onBackPressed(){
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-    }
 
     private void setPenalty(MenuItem item){
         if (isStared) return;
@@ -268,34 +285,34 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 
     private void init(){
 //        ui elements:
-        yesButton = findViewById(R.id.yesButton);
-        noButton = findViewById(R.id.noButton);
-        startButton =findViewById(R.id.startButton);
-        leftText = findViewById(R.id.leftTextView);
-        rightText = findViewById(R.id.rightTextView);
-        pointsText = findViewById(R.id.pointsTextView);
-        rulesText = findViewById(R.id.rulesTextView);
-        timerText = findViewById(R.id.timerTextView);
-        recordText = findViewById(R.id.recordTextView);
-        usernameText = findViewById(R.id.usernameTextView);
-        difficultyText = findViewById(R.id.difficultyTextView);
-        logoutImage = findViewById(R.id.logoutImageView);
-        checkedMenuItemId = R.id.game_normal_settings;
+//        yesButton = findViewById(R.id.yesButton);
+//        noButton = findViewById(R.id.noButton);
+//        startButton =findViewById(R.id.startButton);
+//        leftText = findViewById(R.id.leftTextView);
+//        rightText = findViewById(R.id.rightTextView);
+//        pointsText = findViewById(R.id.pointsTextView);
+//        rulesText = findViewById(R.id.rulesTextView);
+//        timerText = findViewById(R.id.timerTextView);
+//        recordText = findViewById(R.id.recordTextView);
+//        usernameText = findViewById(R.id.usernameTextView);
+//        difficultyText = findViewById(R.id.difficultyTextView);
+//        logoutImage = findViewById(R.id.logoutImageView);
+//        checkedMenuItemId = R.id.game_normal_settings;
 
-        Toolbar myToolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(myToolbar);
+//        Toolbar myToolbar = findViewById(R.id.toolbar);
+//        setSupportActionBar(myToolbar);
 
 //        colors:
-        colorNames = getResources().getStringArray(R.array.color_names_array);
-        colors = getResources().getIntArray(R.array.game_colors_array);
-        if (colorNames.length != colors.length) {
-            throw new IllegalArgumentException(
-                    "The number of keys doesn't match the number of values.");
-        }
-        for (int i = 0; i < colorNames.length; i++){
-            colorsMap.put(colorNames[i], colors[i]);
-        }
-        shuffle();
+//        colorNames = getResources().getStringArray(R.array.color_names_array);
+//        colors = getResources().getIntArray(R.array.game_colors_array);
+//        if (colorNames.length != colors.length) {
+//            throw new IllegalArgumentException(
+//                    "The number of keys doesn't match the number of values.");
+//        }
+//        for (int i = 0; i < colorNames.length; i++){
+//            colorsMap.put(colorNames[i], colors[i]);
+//        }
+//        shuffle();
 
 //        record:
 //        Integer previousRecord = fileHandler.loadRecord();
@@ -303,25 +320,25 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 //        recordText.setText(text);
 
 //        accounts:
-        mAuth = FirebaseAuth.getInstance();
-        accountFirebase = mAuth.getCurrentUser();
-
-        accountGoogle = GoogleSignIn.getLastSignedInAccount(this);
-        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .build();
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
-        if (accountFirebase != null){
-            currentUser = getCurrentUser(accountFirebase);
-            Log.d("main_activity", "accountFirebase : ok");
-        }
-        if (accountGoogle != null){
-            currentUser = getCurrentUser(accountGoogle);
-            Log.d("main_activity", "accountGoogle : ok");
-
-        }
-        usernameText.setText(currentUser.getDisplayName());
+//        mAuth = FirebaseAuth.getInstance();
+//        accountFirebase = mAuth.getCurrentUser();
+//
+//        accountGoogle = GoogleSignIn.getLastSignedInAccount(this);
+//        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+//                .requestEmail()
+//                .build();
+//        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+//
+//        if (accountFirebase != null){
+//            currentUser = getCurrentUser(accountFirebase);
+//            Log.d("main_activity", "accountFirebase : ok");
+//        }
+//        if (accountGoogle != null){
+//            currentUser = getCurrentUser(accountGoogle);
+//            Log.d("main_activity", "accountGoogle : ok");
+//
+//        }
+//        usernameText.setText(currentUser.getDisplayName());
     }
 
     private void startGame(Long timeMillis) throws FileNotFoundException {
@@ -365,11 +382,6 @@ public class MainActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         startButton.setText(getString(R.string.start_button_text));
 
         startEndingAnimations();
-
-//        Integer previousRecord = fileHandler.loadRecord();
-//        if (previousRecord < points){
-//            updateRecord();
-//        }
 
     }
 

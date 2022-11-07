@@ -5,7 +5,8 @@ public enum Duration {
 //    public final static Long GAME_DURATION_MILLIS = 60000L;
 
     ANIMATION_MILLIS(1000L),
-    GAME_MILLIS(60000L);
+    GAME_MILLIS(60000L),
+    TEST_GAME_MILLIS(10000L);
 
     private final long duration;
     Duration(long duration){

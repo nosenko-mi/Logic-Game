@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-public class Config {
+public class AppConfig {
 
     private static final String TAG = "Config";
 
@@ -16,7 +16,7 @@ public class Config {
         Resources resources = context.getResources();
 
         try {
-            InputStream rawResource = resources.openRawResource(R.raw.config);
+            InputStream rawResource = resources.openRawResource(R.raw.app);
             Properties properties = new Properties();
             properties.load(rawResource);
             return properties.getProperty(name);

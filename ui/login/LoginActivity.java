@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -22,24 +21,16 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCanceledListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.ltl.mpmp_lab3.Config;
 import com.ltl.mpmp_lab3.MainActivity;
-import com.ltl.mpmp_lab3.RegisterActivity;
 import com.ltl.mpmp_lab3.constants.IntentExtra;
 import com.ltl.mpmp_lab3.databinding.ActivityLoginBinding;
-import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler;
-
-import java.util.Objects;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -87,79 +78,85 @@ public class LoginActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = ActivityLoginBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        init();
-
-        // will be necessary in future
-//        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+//        binding = ActivityLoginBinding.inflate(getLayoutInflater());
+//        setContentView(binding.getRoot());
+//
+//        init();
+//
+//        // will be necessary in future
+////        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+////            @Override
+////            public void onDataChange(@NonNull DataSnapshot snapshot) {
+////                if (snapshot.exists()) {
+////                    // Exist! Do whatever.
+////                } else {
+////                    // Don't exist! Do something.
+////                    if (account == null)
+////                        return;
+//////                    User user = createUser(account);
+//////                    databaseReference.child("newUser").setValue(user);
+//////                    DatabaseReference usersRef = databaseReference.child("users");
+//////                    usersRef.child("alanisawesome").setValue(user);
+////                }
+////            }
+////            @Override
+////            public void onCancelled(@NonNull DatabaseError error) {
+////                // Failed, how to handle?
+////            }
+////        });
+//
+//        // Check if user is signed in (non-null) and update UI accordingly.
+//
+//        FirebaseUser currentUser = mAuth.getCurrentUser();
+//        if (currentUser != null){
+//            updateUiWithUser();
+//        }
+//
+//        GoogleSignInOptions gso = new GoogleSignInOptions
+//                .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+//                .requestEmail()
+//                .requestIdToken(Objects.requireNonNull(Config.getConfigValue(this, "web_client_id")))
+//                .build();
+//
+//        // Build a GoogleSignInClient with the options specified by gso.
+//        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+//
+//        loginButton.setOnClickListener(new View.OnClickListener() {
 //            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                if (snapshot.exists()) {
-//                    // Exist! Do whatever.
-//                } else {
-//                    // Don't exist! Do something.
-//                    if (account == null)
-//                        return;
-////                    User user = createUser(account);
-////                    databaseReference.child("newUser").setValue(user);
-////                    DatabaseReference usersRef = databaseReference.child("users");
-////                    usersRef.child("alanisawesome").setValue(user);
-//                }
+//            public void onClick(View v) {
+////                loadingProgressBar.setVisibility(View.VISIBLE);
+//                firebaseAuthWithEmail();
 //            }
+//        });
+//
+//        signInGoogle.setOnClickListener(new View.OnClickListener() {
 //            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//                // Failed, how to handle?
+//            public void onClick(View view) {
+//                Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+//                googleSignInLauncher.launch(signInIntent);
+//            }
+//        });
+//
+//        emailSwitch.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                EmailPreferenceHandler.put(getApplicationContext(), emailSwitch.isChecked());
+//            }
+//        });
+//
+//        registerTextView.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
+//                startActivity(intent);
 //            }
 //        });
 
-        // Check if user is signed in (non-null) and update UI accordingly.
-
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null){
-            updateUiWithUser();
-        }
-
-        GoogleSignInOptions gso = new GoogleSignInOptions
-                .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestIdToken(Objects.requireNonNull(Config.getConfigValue(this, "web_client_id")))
-                .build();
-
-        // Build a GoogleSignInClient with the options specified by gso.
-        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                loadingProgressBar.setVisibility(View.VISIBLE);
-                firebaseAuthWithEmail();
-            }
-        });
-
-        signInGoogle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-                googleSignInLauncher.launch(signInIntent);
-            }
-        });
-
-        emailSwitch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                EmailPreferenceHandler.put(getApplicationContext(), emailSwitch.isChecked());
-            }
-        });
-
-        registerTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getApplicationContext(), RegisterActivity.class);
-                startActivity(intent);
-            }
-        });
+//        FragmentManager fragmentManager = getSupportFragmentManager();
+//        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+//        fragmentTransaction.replace(R.id.fragment_fl, new LoginFragment());
+//        fragmentTransaction.addToBackStack(null);
+//        fragmentTransaction.commit();
     }
 
     private void init(){

@@ -3,7 +3,7 @@ package com.ltl.mpmp_lab3.utility;
 import android.content.Context;
 import android.util.Log;
 
-import com.ltl.mpmp_lab3.Config;
+import com.ltl.mpmp_lab3.AppConfig;
 
 import java.io.Serializable;
 import java.util.Locale;
@@ -22,8 +22,22 @@ public class MailSender implements Serializable {
 
     boolean isEmailSent = false;
     Context context;
+    private static volatile MailSender instance;
 
-    public MailSender(Context context) {
+    public static MailSender getInstance(Context context) {
+        MailSender result = instance;
+        if (result != null) {
+            return result;
+        }
+        synchronized(MailSender.class) {
+            if (instance == null) {
+                instance = new MailSender(context);
+            }
+            return instance;
+        }
+    }
+
+    private MailSender(Context context) {
         this.context = context;
     }
 
@@ -32,15 +46,72 @@ public class MailSender implements Serializable {
         this.context = context;
     }
 
-    public void sendEmailIfNotSent(String userEmail, String displayName, int points) {
+    public void sendInNotSent(String userEmail, String displayName, int points){
+
+        if (isEmailSent) return;
+
+        new Thread(() -> {
+            Log.d("game_result_activity", "sendEmail() started");
+
+            String senderEmail = AppConfig.getConfigValue(context, "game_email");
+            String senderPassword = AppConfig.getConfigValue(context, "email_password");
+
+            Properties properties = setProperties();
+
+            Session session = Session.getInstance(properties, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(senderEmail, senderPassword);
+                }
+            });
+
+            MimeMessage mimeMessage = createMessage(session, userEmail, displayName, points);
+
+            sendNoThread(mimeMessage);
+        }).start();
+    }
+
+    private void sendNoThread(MimeMessage message){
+        try {
+            isEmailSent = true;
+            Transport.send(message);
+            Log.d("game_result_activity", "email sent");
+        } catch (MessagingException e) {
+            isEmailSent = false;
+            e.printStackTrace();
+            Log.d("game_result_activity", "email was not sent");
+        }
+    }
+
+    private MimeMessage createMessage(Session session, String userEmail, String displayName, int points) {
+        MimeMessage mimeMessage = new MimeMessage(session);
+        try {
+            mimeMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(userEmail));
+            mimeMessage.setSubject("Game results");
+            mimeMessage.setText(
+                    String.format(
+                            Locale.ENGLISH,
+                            "Hello %s, \nYou gained %d points!", displayName, points));
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+        return mimeMessage;
+    }
+
+    public boolean isEmailSent() {
+        return isEmailSent;
+    }
+
+//    TODO: delete all below
+    private void sendEmailIfNotSent(String userEmail, String displayName, int points) {
 
         if (isEmailSent) return;
 
         Log.d("game_result_activity", "sendEmail() started");
 
         try {
-            String senderEmail = Config.getConfigValue(context, "game_email");
-            String senderPassword = Config.getConfigValue(context, "email_password");
+            String senderEmail = AppConfig.getConfigValue(context, "game_email");
+            String senderPassword = AppConfig.getConfigValue(context, "email_password");
 
             Properties properties = setProperties();
 
@@ -60,60 +131,35 @@ public class MailSender implements Serializable {
                             Locale.ENGLISH,
                             "Hello %s, \nYou gained %d points!", displayName, points));
 
-            sendNoJoin(mimeMessage);
+            sendAsync(mimeMessage);
 
         } catch (MessagingException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendWithThread(String userEmail, String displayName, int points){
-
-        if (isEmailSent) return;
-
-        new Thread(() -> {
-            Log.d("game_result_activity", "sendEmail() started");
-
-            String senderEmail = Config.getConfigValue(context, "game_email");
-            String senderPassword = Config.getConfigValue(context, "email_password");
-
-            Properties properties = setProperties();
-
-            Session session = Session.getInstance(properties, new Authenticator() {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(senderEmail, senderPassword);
-                }
-            });
-
-            MimeMessage mimeMessage = createMessage(session, userEmail, displayName, points);
-
-            sendNoThread(mimeMessage);
-        }).start();
+    private void sendAsync(MimeMessage message){
+        Thread thread = new Thread(() -> {
+            try {
+                isEmailSent = true;
+                Transport.send(message);
+                Log.d("game_result_activity", "email sent");
+            } catch (MessagingException e) {
+                isEmailSent = false;
+                e.printStackTrace();
+                Log.d("game_result_activity", "email was not sent");
+            }
+        });
+        thread.start();
     }
 
-    private MimeMessage createMessage(Session session, String userEmail, String displayName, int points) {
-        MimeMessage mimeMessage = new MimeMessage(session);
-        try {
-            mimeMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(userEmail));
-            mimeMessage.setSubject("Game results");
-            mimeMessage.setText(
-                    String.format(
-                            Locale.ENGLISH,
-                            "Hello %s, \nYou gained %d points!", displayName, points));
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
-        return mimeMessage;
-    }
-
-    public boolean sendEmail(String userEmail, String displayName, int points) {
+    private boolean sendEmail(String userEmail, String displayName, int points) {
 
         Log.d("game_result_activity", "sendEmail() started");
 
         try {
-            String senderEmail = Config.getConfigValue(context, "game_email");
-            String passwordSenderEmail = Config.getConfigValue(context, "email_password");
+            String senderEmail = AppConfig.getConfigValue(context, "game_email");
+            String passwordSenderEmail = AppConfig.getConfigValue(context, "email_password");
 
             Properties properties = setProperties();
 
@@ -153,7 +199,6 @@ public class MailSender implements Serializable {
         return properties;
     }
 
-
     private void send(MimeMessage message) throws MessagingException{
         Thread thread = new Thread(() -> {
             try {
@@ -172,36 +217,5 @@ public class MailSender implements Serializable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    private void sendNoThread(MimeMessage message){
-        try {
-            isEmailSent = true;
-            Transport.send(message);
-            Log.d("game_result_activity", "email sent");
-        } catch (MessagingException e) {
-            isEmailSent = false;
-            e.printStackTrace();
-            Log.d("game_result_activity", "email was not sent");
-        }
-    }
-
-    private void sendNoJoin(MimeMessage message){
-        Thread thread = new Thread(() -> {
-            try {
-                isEmailSent = true;
-                Transport.send(message);
-                Log.d("game_result_activity", "email sent");
-            } catch (MessagingException e) {
-                isEmailSent = false;
-                e.printStackTrace();
-                Log.d("game_result_activity", "email was not sent");
-            }
-        });
-        thread.start();
-    }
-
-    public boolean isEmailSent() {
-        return isEmailSent;
     }
 }
