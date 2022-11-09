@@ -11,7 +11,9 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
+import androidx.navigation.navGraphViewModels
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -20,10 +22,20 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.ltl.mpmp_lab3.AppConfig
+import com.ltl.mpmp_lab3.R
 import com.ltl.mpmp_lab3.databinding.FragmentLoginBinding
+import com.ltl.mpmp_lab3.user.UserModel
+import com.ltl.mpmp_lab3.user.UserRepository
+import com.ltl.mpmp_lab3.user.UserViewModel
+import com.ltl.mpmp_lab3.utility.DatabaseCallback
 import java.util.*
 
 class LoginFragment : Fragment() {
+
+    private val TAG: String = "login_fragment"
+
+    private val userRepository: UserRepository = UserRepository()
+    private val userViewModel: UserViewModel by navGraphViewModels(R.id.my_nav)
 
     private lateinit var account: GoogleSignInAccount
     private lateinit var mAuth: FirebaseAuth
@@ -39,10 +51,14 @@ class LoginFragment : Fragment() {
             val task = GoogleSignIn.getSignedInAccountFromIntent(intent)
             try {
                 account = task.getResult(ApiException::class.java)
+
+                val userModel = UserModel(account.displayName.toString(), account.email.toString(), 0)
+                userRepository.addUserIfNotExist(userModel)
+
                 firebaseAuthWithGoogle(account)
-                Log.d("login_activity", "Google sign succeed")
+                Log.d(TAG, "Google sign succeed")
             } catch (e: ApiException) {
-                Log.w("login_activity", "Google sign in failed", e)
+                Log.w(TAG, "Google sign in failed", e)
             }
             handleSignInResult(task)
         }
@@ -51,6 +67,7 @@ class LoginFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
         val view = binding.root
+
         return view
     }
 
@@ -67,7 +84,12 @@ class LoginFragment : Fragment() {
         // Check if user is signed in (non-null) and update UI accordingly.
         val currentUser = mAuth.currentUser
         if (currentUser != null) {
-            updateUiWithUser()
+            Log.d(TAG, currentUser.email.toString())
+
+            val userModel = UserModel(currentUser.displayName.toString(), currentUser.email.toString(), 0)
+            userRepository.addUserIfNotExist(userModel)
+
+            updateUiWithUser(userModel)
         }
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -93,8 +115,12 @@ class LoginFragment : Fragment() {
         }
     }
 
+    private fun updateUiWithUser(user: UserModel) {
 
-    private fun updateUiWithUser() {
+//      it should look like: userViewModel.set(findByEmail()) then navigate
+//      however firestore fetches data asynchronously so you can't use return statement
+        userRepository.findByEmail1(user.email, userViewModel!!)
+
         val action = LoginFragmentDirections.goToGameFragment()
         view?.let { Navigation.findNavController(it).navigate(action) }
     }
@@ -103,8 +129,14 @@ class LoginFragment : Fragment() {
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
         mAuth.signInWithCredential(credential)
             .addOnSuccessListener {
-//                databaseReference.push().setValue(user);
-                updateUiWithUser()
+
+                val userModel = UserModel(
+                    acct.displayName!!,
+                    acct.email!!,
+                    0
+                )
+
+                updateUiWithUser(userModel)
 //                Toast.makeText(context, "Authentication succeed.",Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
@@ -121,16 +153,17 @@ class LoginFragment : Fragment() {
         }
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener{
-                updateUiWithUser()
-//                Toast.makeText(context, "Authentication succeed.",Toast.LENGTH_SHORT).show()
+                val userModel = UserModel(account.displayName.toString(), account.email.toString(), 0)
+                userRepository.addUserIfNotExist(userModel)
 
+                updateUiWithUser(userModel)
             }
             .addOnFailureListener{ e: Exception ->
                 Toast.makeText(context, "Authentication failed.",Toast.LENGTH_SHORT).show()
-                Log.d("login_activity", e.toString())
+                Log.d(TAG, e.toString())
             }
             .addOnCanceledListener{
-                Log.d("login_activity", "login canceled")
+                Log.d(TAG, "login canceled")
             }
     }
 
@@ -138,7 +171,14 @@ class LoginFragment : Fragment() {
         try {
             account = completedTask.getResult(ApiException::class.java)
             // Signed in successfully, change activity.
-            updateUiWithUser()
+
+            val userModel = UserModel(
+                account.displayName!!,
+                account.email!!,
+                0
+            )
+
+            updateUiWithUser(userModel)
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
@@ -146,12 +186,9 @@ class LoginFragment : Fragment() {
         }
     }
 
-
     private fun goToRegister() {
         val action = LoginFragmentDirections.goToRegisterFragment()
         view?.let { Navigation.findNavController(it).navigate(action) }
     }
-
-
 
 }

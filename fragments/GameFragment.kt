@@ -9,7 +9,10 @@ import android.view.animation.AnimationUtils
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
+import androidx.navigation.navGraphViewModels
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -19,8 +22,11 @@ import com.google.firebase.auth.FirebaseUser
 import com.ltl.mpmp_lab3.R
 import com.ltl.mpmp_lab3.constants.AnswerOption
 import com.ltl.mpmp_lab3.constants.Duration
-import com.ltl.mpmp_lab3.data.model.User
+import com.ltl.mpmp_lab3.user.User
 import com.ltl.mpmp_lab3.databinding.FragmentGameBinding
+import com.ltl.mpmp_lab3.user.UserModel
+import com.ltl.mpmp_lab3.user.UserRepository
+import com.ltl.mpmp_lab3.user.UserViewModel
 import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler
 import com.ltl.mpmp_lab3.utility.GameMaster
 import com.ltl.mpmp_lab3.utility.PenaltyHandler
@@ -35,6 +41,8 @@ class GameFragment : Fragment() {
 //    // This property is only valid between onCreateView and
 //    // onDestroyView.
 //    private val binding get() = _binding!!
+    private val TAG: String = "mainFragment"
+
 
     private lateinit var binding: FragmentGameBinding
     private var isAttached: Boolean = false
@@ -61,12 +69,14 @@ class GameFragment : Fragment() {
     private lateinit var colors: IntArray
     private val colorsMap = HashMap<String, Int>()
 
+    private val userRepository: UserRepository = UserRepository()
+    val userViewModel: UserViewModel by navGraphViewModels(R.id.my_nav)
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         gm = GameMaster(requireActivity().applicationContext)
-
-
         initColorsMap()
 
         activity?.onBackPressedDispatcher?.addCallback(this, object : OnBackPressedCallback(true) {
@@ -96,6 +106,10 @@ class GameFragment : Fragment() {
 
         initCurrentUser()
 
+        userViewModel.getName().observe(viewLifecycleOwner) {
+            binding.toolbar.title = it.toString()
+        }
+
         return view
     }
 
@@ -112,12 +126,13 @@ class GameFragment : Fragment() {
 
         if (accountFirebase != null) {
             currentUser = getCurrentUser(accountFirebase!!)
-            Log.d("main_activity", "accountFirebase : ok")
+            Log.d(TAG, "accountFirebase : ok")
         }
         if (accountGoogle != null) {
             currentUser = getCurrentUser(accountGoogle!!)
-            Log.d("main_activity", "accountGoogle : ok")
+            Log.d(TAG, "accountGoogle : ok")
         }
+
     }
 
     override fun onDestroyView() {
@@ -127,6 +142,15 @@ class GameFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+//        freezes the hole phone dont use
+//        Log.d(TAG, "observe begin")
+//        userViewModel.currentUser.observe(viewLifecycleOwner) {
+//            userViewModel.setCurrentUser(it)
+////            binding.toolbar.title = userViewModel.currentUser.value!!.displayname
+//
+//        }
+//        Log.d(TAG, "observe end")
 
         binding.yesButton.setOnClickListener {
             handleClick(
@@ -155,7 +179,9 @@ class GameFragment : Fragment() {
         binding.toolbar.inflateMenu(R.menu.action_bar_menu)
         optionsMenu = binding.toolbar.menu
 
-        binding.toolbar.title = currentUser.displayName
+//        empty user:
+//        binding.toolbar.title = userViewModel.currentUser.value!!.displayname
+//        binding.toolbar.title = currentUser.displayName
         binding.toolbar.menu.findItem(R.id.email_settings).isChecked =
             EmailPreferenceHandler.get(context)
 
@@ -188,13 +214,13 @@ class GameFragment : Fragment() {
             timeLeftInMillis = mEndTime!! - System.currentTimeMillis()
         }
         try {
-            outState.putInt("points", gm.points)
+            outState.putLong("points", gm.points)
             outState.putLong("millisLeft", timeLeftInMillis)
             outState.putBoolean("isStarted", isStared)
             outState.putLong("endTime", mEndTime!!)
             outState.putSerializable("gm", gm)
         } catch (e: RuntimeException){
-            Log.e("main_activity", e.toString())
+            Log.e(TAG, e.toString())
         }
 
 
@@ -225,18 +251,18 @@ class GameFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        Log.d("main_activity", "isAttached = true")
+        Log.d(TAG, "isAttached = true")
         isAttached = true
     }
 
     override fun onDetach() {
         super.onDetach()
-        Log.d("main_activity", "isAttached = false")
+        Log.d(TAG, "isAttached = false")
         isAttached = false
     }
 
     private fun startGame(timeMillis: Long) {
-        Log.d("main_activity", "game started")
+        Log.d(TAG, "game started")
         isStared = true
         gm.start()
         points = 0
@@ -247,26 +273,26 @@ class GameFragment : Fragment() {
     }
 
     private fun  finishGame() {
-        Log.d("main_activity", "game finished")
-        Log.d("main_activity", "finishGame timer: " + timer.toString())
+        Log.d(TAG, "game finished")
+        Log.d(TAG, "finishGame timer: " + timer.toString())
 
         timer!!.cancel()
-        Log.d("main_activity", "finishGame timer: " + timer.toString())
+        Log.d(TAG, "finishGame timer: " + timer.toString())
 
         isStared = false
     }
 
     private fun renderFinishedUi(){
         if (!isAttached) {
-            Log.d("main_activity", "renderFinishedUi() fragment is not attached")
+            Log.d(TAG, "renderFinishedUi() fragment is not attached")
             return
         }
 
-        Log.d("main_activity", "renderFinishedUi() start")
+        Log.d(TAG, "renderFinishedUi() start")
         binding.timerTextView.setText(R.string.finished_text)
         binding.startButton.text = getString(R.string.start_button_text)
         startEndingAnimations()
-        Log.d("main_activity", "renderFinishedUi() finished")
+        Log.d(TAG, "renderFinishedUi() finished")
     }
 
     private fun finishGameSequence(){
@@ -296,7 +322,7 @@ class GameFragment : Fragment() {
                 finishGameSequence()
             }
         }.start()
-        Log.d("main_activity", "timer: " + timer.toString())
+        Log.d(TAG, "timer: " + timer.toString())
     }
 
 
@@ -401,10 +427,10 @@ class GameFragment : Fragment() {
             finishGame()
         }
         mAuth!!.signOut()
-        Log.d("main_activity", "accountFirebase : signOut")
+        Log.d(TAG, "accountFirebase : signOut")
         mGoogleSignInClient!!.signOut()
             .addOnCompleteListener {
-                Log.d("main_activity", "accountGoogle : signOut")
+                Log.d(TAG, "accountGoogle : signOut")
             }
     }
 
