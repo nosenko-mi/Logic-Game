@@ -36,6 +36,10 @@ class UserViewModel : ViewModel() {
         userRepository.updateRecord(UserModel(_userEmail.value.toString(), _userName.value.toString(), newRecord))
     }
 
+    fun finByEmail(email: String){
+        userRepository.findByEmail1(email, this)
+    }
+
 //    v2
 
     private val _currentUser = MutableLiveData<UserModel>(UserModel())

@@ -119,7 +119,9 @@ class LoginFragment : Fragment() {
 
 //      it should look like: userViewModel.set(findByEmail()) then navigate
 //      however firestore fetches data asynchronously so you can't use return statement
-        userRepository.findByEmail1(user.email, userViewModel!!)
+//        userRepository.findByEmail1(user.email, userViewModel!!)
+
+        userViewModel.finByEmail(user.email)
 
         val action = LoginFragmentDirections.goToGameFragment()
         view?.let { Navigation.findNavController(it).navigate(action) }
