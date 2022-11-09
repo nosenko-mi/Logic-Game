@@ -1,4 +1,4 @@
-package com.ltl.mpmp_lab3.data.model;
+package com.ltl.mpmp_lab3.user;
 
 public class User {
 
@@ -6,8 +6,6 @@ public class User {
     private String email;
     private Boolean sendResult = false;
     private Long  record = 0L;
-
-
 
     @Override
     public String toString() {
