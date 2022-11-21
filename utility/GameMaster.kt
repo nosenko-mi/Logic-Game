@@ -14,7 +14,7 @@ class GameMaster constructor(context: Context) : Serializable {
 
     private var generator = Random()
 
-    var points: Int = 0
+    var points: Long = 0
     var penalty: Int = 1
 
     init {
@@ -54,6 +54,4 @@ class GameMaster constructor(context: Context) : Serializable {
 
         return intArrayOf(text1, color1, text2, color2)
     }
-
-
 }

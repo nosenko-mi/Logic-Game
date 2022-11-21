@@ -9,8 +9,6 @@ import android.view.animation.AnimationUtils
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import androidx.navigation.navGraphViewModels
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -20,24 +18,25 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.ltl.mpmp_lab3.R
+import com.ltl.mpmp_lab3.attempt.AttemptModel
+import com.ltl.mpmp_lab3.attempt.AttemptModelRepository
+import com.ltl.mpmp_lab3.attempt.AttemptsViewModel
 import com.ltl.mpmp_lab3.constants.AnswerOption
 import com.ltl.mpmp_lab3.constants.Duration
-import com.ltl.mpmp_lab3.user.User
 import com.ltl.mpmp_lab3.databinding.FragmentGameBinding
-import com.ltl.mpmp_lab3.user.UserModel
-import com.ltl.mpmp_lab3.user.UserRepository
+import com.ltl.mpmp_lab3.user.User
 import com.ltl.mpmp_lab3.user.UserViewModel
 import com.ltl.mpmp_lab3.utility.EmailPreferenceHandler
 import com.ltl.mpmp_lab3.utility.GameMaster
 import com.ltl.mpmp_lab3.utility.PenaltyHandler
 import java.io.FileNotFoundException
-import java.lang.RuntimeException
-import java.util.*
 
 
 class GameFragment : Fragment() {
 
-//    private var _binding: FragmentGameBinding? = null
+    private lateinit var difficulty: String
+
+    //    private var _binding: FragmentGameBinding? = null
 //    // This property is only valid between onCreateView and
 //    // onDestroyView.
 //    private val binding get() = _binding!!
@@ -69,8 +68,9 @@ class GameFragment : Fragment() {
     private lateinit var colors: IntArray
     private val colorsMap = HashMap<String, Int>()
 
-    private val userRepository: UserRepository = UserRepository()
-    val userViewModel: UserViewModel by navGraphViewModels(R.id.my_nav)
+    private val userViewModel: UserViewModel by navGraphViewModels(R.id.my_nav)
+    private val attemptsViewModel: AttemptsViewModel by navGraphViewModels(R.id.my_nav)
+    private val attemptRepository: AttemptModelRepository = AttemptModelRepository()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +78,8 @@ class GameFragment : Fragment() {
 
         gm = GameMaster(requireActivity().applicationContext)
         initColorsMap()
+
+        difficulty = getString(R.string.game_difficulty_normal)
 
         activity?.onBackPressedDispatcher?.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -108,6 +110,10 @@ class GameFragment : Fragment() {
 
         userViewModel.getName().observe(viewLifecycleOwner) {
             binding.toolbar.title = it.toString()
+        }
+
+        userViewModel.getRecord().observe(viewLifecycleOwner) {
+            binding.recordTextView.text = it.toString()
         }
 
         return view
@@ -142,15 +148,6 @@ class GameFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-//        freezes the hole phone dont use
-//        Log.d(TAG, "observe begin")
-//        userViewModel.currentUser.observe(viewLifecycleOwner) {
-//            userViewModel.setCurrentUser(it)
-////            binding.toolbar.title = userViewModel.currentUser.value!!.displayname
-//
-//        }
-//        Log.d(TAG, "observe end")
 
         binding.yesButton.setOnClickListener {
             handleClick(
@@ -263,13 +260,16 @@ class GameFragment : Fragment() {
 
     private fun startGame(timeMillis: Long) {
         Log.d(TAG, "game started")
+
         isStared = true
         gm.start()
         points = 0
+        mEndTime = System.currentTimeMillis() + timeMillis
+
+        startTimer(timeMillis)
+
         binding.pointsTextView.text = String.format(getString(R.string.current_points_text), points)
         startOpeningAnimations()
-        mEndTime = System.currentTimeMillis() + timeMillis
-        startTimer(timeMillis)
     }
 
     private fun  finishGame() {
@@ -296,9 +296,37 @@ class GameFragment : Fragment() {
     }
 
     private fun finishGameSequence(){
+        setNewRecord(gm.points)
+        writeAttempt()
         renderFinishedUi()
         finishGame()
         goToResults(currentUser)
+    }
+
+    private fun writeAttempt() {
+        if (!userViewModel.hasValidUser()) return
+        attemptsViewModel.saveCurrentAttempt(
+            AttemptModel(
+                userViewModel.getEmail().value.toString(),
+                gm.points,
+                difficulty
+            )
+        )
+//        attemptRepository.saveAttempt(
+//            AttemptModel(
+//                userViewModel.getEmail().value.toString(),
+//                gm.points
+//            ))
+
+//        tests only
+        attemptRepository.findAttemptsByEmailLimited(userViewModel.getEmail().value.toString(), 3)
+    }
+
+    private fun setNewRecord(points: Long) {
+        if (userViewModel.hasValidUser() && userViewModel.getRecord().value!! < points){
+            Log.d(TAG, "setting new record")
+            userViewModel.updateRecord(points)
+        }
     }
 
     private fun startTimer(timeMillis: Long) {
@@ -324,8 +352,6 @@ class GameFragment : Fragment() {
         }.start()
         Log.d(TAG, "timer: " + timer.toString())
     }
-
-
 
     private fun handleClick(answerOption: AnswerOption) {
         gm.checkAnswer(
@@ -376,6 +402,7 @@ class GameFragment : Fragment() {
         if (isStared) return
         penalty = PenaltyHandler.getPenalty(item)
         gm.penalty = penalty
+        difficulty = item.title.toString()
     }
 
     private fun updateMenus(item: MenuItem) {

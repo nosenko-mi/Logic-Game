@@ -8,14 +8,14 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class UserModel(val displayname: String, val email: String, var record: Long) : Parcelable{
 
-    constructor() : this("emptyDisplayName", "emptyEmail",  0)
+    constructor() : this("emptyDisplayName", "emptyEmail",  -1)
 
-    fun isNullOrEmpty(): Boolean{
-        if (email == "emptyEmail"){
-            return true
-        }
-        return false
-    }
+//    fun isNullOrEmpty(): Boolean{
+//        if (email == "emptyEmail"){
+//            return true
+//        }
+//        return false
+//    }
 
     override fun toString(): String {
         return "UserModel(displayname='$displayname', email='$email', record=$record)"

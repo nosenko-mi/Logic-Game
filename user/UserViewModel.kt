@@ -8,11 +8,12 @@ class UserViewModel : ViewModel() {
 
 //    v3
 
-    private val userRepository: UserRepository = UserRepository()
+    private val repository: UserRepository = UserRepository()
 
     private val _userEmail = MutableLiveData("")
     private val _userName = MutableLiveData("")
     private val _userRecord = MutableLiveData<Long>(0)
+    private val _userScore = MutableLiveData<Int>(0)
 
     fun getEmail(): LiveData<String>{
         return _userEmail
@@ -26,43 +27,50 @@ class UserViewModel : ViewModel() {
         return _userRecord
     }
 
+    fun getScore(): LiveData<Int>{
+        return _userScore
+    }
+
     fun setNewUser(model: UserModel){
+        repository.addUserIfNotExist(model)
         _userEmail.value =  model.email
         _userName.value =  model.displayname
         _userRecord.value =  model.record
     }
 
     fun updateRecord(newRecord: Long){
-        userRepository.updateRecord(UserModel(_userEmail.value.toString(), _userName.value.toString(), newRecord))
+        repository.updateRecord(UserModel(_userName.value.toString(), _userEmail.value.toString(), newRecord))
+        _userRecord.value =  newRecord
     }
 
     fun finByEmail(email: String){
-        userRepository.findByEmail1(email, this)
-    }
-
-//    v2
-
-    private val _currentUser = MutableLiveData<UserModel>(UserModel())
-    val currentUser: LiveData<UserModel> = _currentUser
-
-    fun setCurrentUser(user: UserModel) {
-        _currentUser.value = user
+        repository.findByEmail(email, this)
     }
 
     fun hasValidUser(): Boolean{
-        return _currentUser.value!!.isNullOrEmpty()
+        return !_userEmail.value.equals("")
     }
 
-//    v1
-
-    private var user: UserModel? = null
-
-
-    fun setUser(user: UserModel?){
-        this.user = user
-    }
-
-    fun getCurrentUser(): UserModel?{
-        return user
-    }
+////    v2
+//
+//    private val _currentUser = MutableLiveData<UserModel>(UserModel())
+//    val currentUser: LiveData<UserModel> = _currentUser
+//
+//    fun setCurrentUser(user: UserModel) {
+//        _currentUser.value = user
+//    }
+//
+//
+////    v1
+//
+//    private var user: UserModel? = null
+//
+//
+//    fun setUser(user: UserModel?){
+//        this.user = user
+//    }
+//
+//    fun getCurrentUser(): UserModel?{
+//        return user
+//    }
 }

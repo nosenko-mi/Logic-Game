@@ -155,7 +155,7 @@ class LoginFragment : Fragment() {
         }
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener{
-                val userModel = UserModel(account.displayName.toString(), account.email.toString(), 0)
+                val userModel = UserModel(it.user?.displayName.toString(), it.user?.email.toString(), 0)
                 userRepository.addUserIfNotExist(userModel)
 
                 updateUiWithUser(userModel)

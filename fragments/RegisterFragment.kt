@@ -2,20 +2,21 @@ package com.ltl.mpmp_lab3.fragments
 
 import android.os.Bundle
 import android.util.Log
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.android.gms.tasks.Task
-import com.google.firebase.auth.AuthResult
+import androidx.navigation.navGraphViewModels
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.ltl.mpmp_lab3.R
 import com.ltl.mpmp_lab3.databinding.FragmentRegisterBinding
 import com.ltl.mpmp_lab3.registration.RegistrationRequest
-import java.util.*
+import com.ltl.mpmp_lab3.user.UserModel
+import com.ltl.mpmp_lab3.user.UserViewModel
 
 class RegisterFragment : Fragment() {
 
@@ -24,13 +25,14 @@ class RegisterFragment : Fragment() {
 
     private var mAuth: FirebaseAuth? = null
 
+    private val userViewModel: UserViewModel by navGraphViewModels(R.id.my_nav)
+
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentRegisterBinding.inflate(inflater, container, false)
         val view = binding.root
 
         mAuth = FirebaseAuth.getInstance()
-
 
         return view
     }
@@ -45,46 +47,78 @@ class RegisterFragment : Fragment() {
 
         binding.registerButton.setOnClickListener {
             val request: RegistrationRequest? = createRequest()
-            createAccount(request!!)
+            request?.let { it1 -> createAccount(it1) }
         }
     }
 
     private fun createAccount(request: RegistrationRequest) {
         mAuth!!.createUserWithEmailAndPassword(request.email, request.password)
-            .addOnCompleteListener{
-                    task: Task<AuthResult?> ->
-                if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in request's information
-                    Log.d("register_activity", "createUserWithEmail:success")
+            .addOnSuccessListener {
+                // Sign in success, update UI with the signed-in request's information
+                Log.d("register_activity", "createUserWithEmail:success")
 
-                    val user = mAuth!!.currentUser!!
-                    val profileUpdates = UserProfileChangeRequest.Builder()
-                        .setDisplayName(request.displayName)
-                        .build()
+                val user = mAuth!!.currentUser!!
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(request.displayName)
+                    .build()
 
-                    user.updateProfile(profileUpdates)
-                        .addOnSuccessListener {
+                user.updateProfile(profileUpdates)
+                    .addOnSuccessListener {
 
-                            Log.d("register_activity", "createUserWithEmail:success")
-                            Log.d("register_activity", "Email: " + user.email)
-                            Log.d("register_activity", "Display name:" + user.displayName)
+                        Log.d("register_activity", "createUserWithEmail:success")
+                        Log.d("register_activity", "Email: " + user.email)
+                        Log.d("register_activity", "Display name:" + user.displayName)
 
-                            returnToLoginActivity()
-                        }
+                        userViewModel.setNewUser(
+                            UserModel(user.displayName.toString(), user.email.toString(), 0)
+                        )
 
-
-                } else {
-                    // If sign in fails, display a message to the request.
-                    Log.d(
-                        "register_activity",
-                        "createUserWithEmail:failure",
-                        task.exception
-                    )
-                    Toast
-                        .makeText(context, task.exception!!.localizedMessage, Toast.LENGTH_LONG)
-                        .show()
-                }
+                        returnToLoginActivity()
+                    }
             }
+            .addOnFailureListener {
+                Log.d(
+                    "register_activity",
+                    "createUserWithEmail:failure",
+                    it
+                )
+                Toast
+                    .makeText(context, it.toString(), Toast.LENGTH_LONG)
+                    .show()
+            }
+//            .addOnCompleteListener{ task: Task<AuthResult?> ->
+//
+//                if (task.isSuccessful) {
+//                    // Sign in success, update UI with the signed-in request's information
+//                    Log.d("register_activity", "createUserWithEmail:success")
+//
+//                    val user = mAuth!!.currentUser!!
+//                    val profileUpdates = UserProfileChangeRequest.Builder()
+//                        .setDisplayName(request.displayName)
+//                        .build()
+//
+//                    user.updateProfile(profileUpdates)
+//                        .addOnSuccessListener {
+//
+//                            Log.d("register_activity", "createUserWithEmail:success")
+//                            Log.d("register_activity", "Email: " + user.email)
+//                            Log.d("register_activity", "Display name:" + user.displayName)
+//
+//                            returnToLoginActivity()
+//                        }
+//
+//                } else {
+//                    // If sign in fails, display a message to the request.
+//                    Log.d(
+//                        "register_activity",
+//                        "createUserWithEmail:failure",
+//                        task.exception
+//                    )
+//                    Toast
+//                        .makeText(context, task.exception!!.localizedMessage, Toast.LENGTH_LONG)
+//                        .show()
+//                }
+//            }
 
         /*.addOnCompleteListener(context,
     OnCompleteListener { task: Task<AuthResult?> ->
@@ -126,12 +160,13 @@ class RegisterFragment : Fragment() {
             binding.usernameEdit.error = "Enter username"
             isValid = false
         }
-        if (binding.emailEdit.text.toString() == "") {
-            binding.emailEdit.error = "Enter username"
+        val pattern = Patterns.EMAIL_ADDRESS
+        if (!pattern.matcher(binding.emailEdit.text.toString()).matches()) {
+            binding.emailEdit.error = "Enter correct email"
             isValid = false
         }
         if (binding.passwordEdit.text.toString() == "") {
-            binding.passwordEdit.error = "Enter username"
+            binding.passwordEdit.error = "Enter correct password"
             isValid = false
         }
         return isValid
